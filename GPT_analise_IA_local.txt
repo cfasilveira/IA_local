@@ -1,0 +1,129 @@
+carlos@carlos:~/Projetos/AI$ docker exec ollama-service ollama show mistral-nemo-otimizado
+  Model
+    architecture        llama      
+    parameters          12.2B      
+    context length      1024000    
+    embedding length    5120       
+    quantization        Q4_0       
+
+  Capabilities
+    completion    
+    tools         
+
+  Parameters
+    top_p               0.9          
+    num_batch           256          
+    presence_penalty    0.1          
+    temperature         0.2          
+    top_k               40           
+    use_mmap            true         
+    num_ctx             4096         
+    num_keep            32           
+    repeat_penalty      1.15         
+    stop                "[INST]"     
+    stop                "[/INST]"    
+
+  System
+    Assistente técnico: Docker, Go, Linux. Respostas concisas e práticas.    
+
+  License
+    Apache License               
+    Version 2.0, January 2004    
+    ...                   
+
+carlos@carlos:~/Projetos/AI$ docker exec ollama-service ollama show qwen-dev-pro
+  Model
+    architecture        qwen2    
+    parameters          14.8B    
+    context length      32768    
+    embedding length    5120     
+    quantization        Q8_0     
+
+  Capabilities
+    completion    
+    tools         
+    insert        
+
+  Parameters
+    num_ctx           4096    
+    repeat_penalty    1.15    
+    temperature       0.15    
+    top_p             0.95    
+
+  System
+    Qwen-Dev-Pro: Especialista sênior em Python/Go/Linux/Docker/DB. Hardware: Ryzen 5600X (6c), 31GB        
+      RAM.                                                                                                    
+    REGRAS:                                                                                                 
+    ...                                                                                                     
+
+  License
+    Apache License               
+    Version 2.0, January 2004    
+    ...   
+
+carlos@carlos:~/Projetos/AI$ docker exec ollama-service ollama show command-r:latest
+  Model
+    architecture        command-r    
+    parameters          32.3B        
+    context length      131072       
+    embedding length    8192         
+    quantization        Q4_0         
+
+  Capabilities
+    completion    
+    tools         
+
+  Parameters
+    stop    "<|START_OF_TURN_TOKEN|>"    
+    stop    "<|END_OF_TURN_TOKEN|>"      
+
+  System
+    You are a knowledgable assistant. You can answer questions and perform tasks.    
+
+  License
+    Creative Commons Attribution-NonCommercial 4.0 International Public    
+    License with Acceptable Use Addendum                                   
+    ...
+
+carlos@carlos:~/Projetos/AI$ docker exec ollama-service ollama show qwen2.5-coder:14b-instruct-q8_0
+  Model
+    architecture        qwen2    
+    parameters          14.8B    
+    context length      32768    
+    embedding length    5120     
+    quantization        Q8_0     
+
+  Capabilities
+    completion    
+    tools         
+    insert        
+
+  System
+    You are Qwen, created by Alibaba Cloud. You are a helpful assistant.    
+
+  License
+    Apache License               
+    Version 2.0, January 2004    
+    ...   
+
+carlos@carlos:~/Projetos/AI$ docker exec ollama-service ollama ps
+NAME    ID    SIZE    PROCESSOR    CONTEXT    UNTIL 
+
+docker exec ollama-service ollama run qwen2.5-coder:14b-instruct-q8_0 "Responda apenas: OK"
+carlos@carlos:~/Projetos/AI$ docker exec ollama-service ollama ps
+NAME                   ID              SIZE     PROCESSOR    CONTEXT    UNTIL   
+qwen-dev-pro:latest    d34c72d2933e    15 GB    100% CPU     4096       Forever  
+
+carlos@carlos:~/Projetos/AI$ docker exec ollama-service ollama run qwen2.5-coder:14b-instruct-q8_0 "Responda apenas: OK"
+OK
+
+carlos@carlos:~/Projetos/AI$ docker exec ollama-service ollama ps
+NAME                   ID              SIZE     PROCESSOR    CONTEXT    UNTIL   
+qwen-dev-pro:latest    d34c72d2933e    15 GB    100% CPU     4096       Forever 
+
+carlos@carlos:~/Projetos/AI$ docker exec ollama-service ollama run command-r:latest "Responda apenas: OK"
+OK
+
+carlos@carlos:~/Projetos/AI$ docker exec ollama-service ollama ps
+NAME                ID              SIZE     PROCESSOR    CONTEXT    UNTIL   
+command-r:latest    7d96360d357f    19 GB    100% CPU     4096       Forever

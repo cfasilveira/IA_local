@@ -1,0 +1,78 @@
+32803592
+25490884
+14286776
+6032644
+8254132
+CPU CORE SOCKET    MAXMHZ
+  0    0      0 4654.2881
+  1    1      0 4654.2881
+  2    2      0 4654.2881
+  3    3      0 4654.2881
+  4    4      0 4654.2881
+  5    5      0 4654.2881
+  6    0      0 4654.2881
+  7    1      0 4654.2881
+  8    2      0 4654.2881
+  9    3      0 4654.2881
+ 10    4      0 4654.2881
+ 11    5      0 4654.2881
+	Size: No Module Installed
+	Locator: DIMM 0
+	Bank Locator: P0 CHANNEL A
+	Size: 16 GB
+	Locator: DIMM 1
+	Bank Locator: P0 CHANNEL A
+	Speed: 3600 MT/s
+	Configured Memory Speed: 3600 MT/s
+	Non-Volatile Size: None
+	Volatile Size: 16 GB
+	Cache Size: None
+	Logical Size: None
+	Size: No Module Installed
+	Locator: DIMM 0
+	Bank Locator: P0 CHANNEL B
+	Size: 16 GB
+	Locator: DIMM 1
+	Bank Locator: P0 CHANNEL B
+	Speed: 3600 MT/s
+	Configured Memory Speed: 3600 MT/s
+	Non-Volatile Size: None
+	Volatile Size: 16 GB
+	Cache Size: None
+	Logical Size: None
+  available cpufreq governors: performance powersave
+                  The governor "performance" may decide which speed to use
+  current CPU frequency: Unable to call hardware
+  current CPU frequency: 3.89 GHz (asserted by call to kernel)
+ollama version is 0.16.2
+OLLAMA_NUM_THREADS=6
+OLLAMA_NUM_PARALLEL=1
+OLLAMA_MAX_LOADED_MODELS=1
+OLLAMA_NUM_CTX=4096
+OLLAMA_KEEP_ALIVE=-1
+OLLAMA_DEBUG=1
+OLLAMA_HOST=0.0.0.0:11434
+time=2026-09-24T12:25:40.257Z level=DEBUG source=sched.go:313 msg="runner with non-zero duration has gone idle, adding timer" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 duration=2562047h47m16.854775807s
+time=2026-09-24T12:25:40.257Z level=DEBUG source=sched.go:331 msg="after processing request finished event" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 refCount=0
+time=2026-09-24T12:26:29.145Z level=DEBUG source=sched.go:408 msg="context for request finished" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096
+time=2026-09-24T12:26:29.145Z level=DEBUG source=sched.go:331 msg="after processing request finished event" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 refCount=1
+time=2026-09-24T12:27:32.071Z level=DEBUG source=sched.go:408 msg="context for request finished" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096
+time=2026-09-24T12:27:32.071Z level=DEBUG source=sched.go:331 msg="after processing request finished event" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 refCount=1
+time=2026-09-24T12:28:14.062Z level=DEBUG source=sched.go:408 msg="context for request finished" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096
+time=2026-09-24T12:28:14.062Z level=DEBUG source=sched.go:331 msg="after processing request finished event" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 refCount=1
+time=2026-09-24T12:29:22.084Z level=DEBUG source=sched.go:408 msg="context for request finished" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096
+time=2026-09-24T12:29:22.084Z level=DEBUG source=sched.go:313 msg="runner with non-zero duration has gone idle, adding timer" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 duration=2562047h47m16.854775807s
+time=2026-09-24T12:29:22.084Z level=DEBUG source=sched.go:331 msg="after processing request finished event" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 refCount=0
+time=2026-09-24T12:31:48.010Z level=DEBUG source=sched.go:408 msg="context for request finished" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096
+time=2026-09-24T12:31:48.010Z level=DEBUG source=sched.go:313 msg="runner with non-zero duration has gone idle, adding timer" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 duration=2562047h47m16.854775807s
+time=2026-09-24T12:31:48.010Z level=DEBUG source=sched.go:331 msg="after processing request finished event" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 refCount=0
+time=2026-09-24T12:33:32.125Z level=DEBUG source=sched.go:408 msg="context for request finished" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096
+time=2026-09-24T12:33:32.125Z level=DEBUG source=sched.go:313 msg="runner with non-zero duration has gone idle, adding timer" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 duration=2562047h47m16.854775807s
+time=2026-09-24T12:33:32.125Z level=DEBUG source=sched.go:331 msg="after processing request finished event" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 refCount=0
+time=2026-09-24T12:36:54.529Z level=DEBUG source=sched.go:408 msg="context for request finished" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096
+time=2026-09-24T12:36:54.529Z level=DEBUG source=sched.go:313 msg="runner with non-zero duration has gone idle, adding timer" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 duration=2562047h47m16.854775807s
+time=2026-09-24T12:36:54.529Z level=DEBUG source=sched.go:331 msg="after processing request finished event" runner.name=registry.ollama.ai/library/mistral-nemo-otimizado:latest runner.size="6.9 GiB" runner.vram="0 B" runner.parallel=1 runner.pid=88 runner.model=/root/.ollama/models/blobs/sha256-b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94 runner.num_ctx=4096 refCount=0
+USE_OLLAMA_DOCKER=false
+OLLAMA_BASE_URL=/ollama
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p3   92G   51G   36G  59% /home

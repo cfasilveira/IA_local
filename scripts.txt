@@ -1,0 +1,491 @@
+==> setup_ia.sh <==
+#!/usr/bin/env bash
+# =============================================================================
+# setup_ia.sh v4.7 - Otimizado para Ryzen 5600X + 31GB RAM | Contexto Seguro
+# Base: /home/carlos/Projetos/AI
+# =============================================================================
+set -uo pipefail
+GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; BLUE='\033[0;34m'; NC='\033[0m'
+BOLD='\033[1m'
+
+BASE_DIR="/home/carlos/Projetos/AI"
+LOG="${BASE_DIR}/setup_$(date +%Y%m%d_%H%M%S).log"
+
+log()   { local msg="[INFO] $(date '+%H:%M:%S') - $1"; echo -e "${CYAN}${msg}${NC}"; echo "$msg" >> "$LOG"; }
+warn()  { local msg="[WARN] $(date '+%H:%M:%S') - $1"; echo -e "${YELLOW}${msg}${NC}"; echo "$msg" >> "$LOG"; }
+err()   { local msg="[ERRO] $(date '+%H:%M:%S') - $1"; echo -e "${RED}${msg}${NC}" >&2; echo "$msg" >> "$LOG"; exit 1; }
+critical() { local msg="[CRÍTICO] $(date '+%H:%M:%S') - $1"; echo -e "${RED}${BOLD}${msg}${NC}" >&2; echo "$msg" >> "$LOG"; }
+set -e
+
+SKIP_TUNING=0; MODEL_CHOICE=""; NO_WARMUP=0; FORCE=0
+while [[ $# -gt 0 ]]; do
+case "$1" in
+--skip-tuning) SKIP_TUNING=1; shift ;;
+--model) MODEL_CHOICE="$2"; shift 2 ;;
+--no-warmup) NO_WARMUP=1; shift ;;
+--force) FORCE=1; shift ;;
+*) err "Flag desconhecida: $1";;
+esac
+done
+log "🚀 Iniciando setup_ia.sh v4.7 em ${BASE_DIR}..."
+
+validate_system() {
+log "Validando sistema..."
+[[ -d "$BASE_DIR" ]] || err "Diretório ${BASE_DIR} não existe."
+docker info >/dev/null 2>&1 || err "Docker inacessível."
+local ram_total=$(free -g | awk '/^Mem:/{print $2}')
+[[ "$ram_total" -ge 28 ]] || err "RAM total insuficiente: ${ram_total}GB"
+}
+
+declare -A MODEL_SPECS=(
+["mistral"]="mistral-nemo-otimizado|7.1|10|12"
+["qwen14b"]="qwen-dev-pro|15|18|22"
+["commandr"]="command-r:latest|18|20|24"
+["none"]="none|0|0|0"
+)
+
+get_ram_requirements() {
+local model_key="$1"; local field="$2"
+local data="${MODEL_SPECS[$model_key]:-none|0|0|0}"
+IFS='|' read -r name weight min rec <<< "$data"
+case "$field" in name) echo "$name";; weight) echo "$weight";; min) echo "$min";; recommended) echo "$rec";; esac
+}
+
+check_ram_with_margin() {
+local model_key="$1"
+local available=$(free -g | awk '/^Mem:/{print $7}')
+local min_ram=$(get_ram_requirements "$model_key" "min")
+local rec_ram=$(get_ram_requirements "$model_key" "recommended")
+local weight=$(get_ram_requirements "$model_key" "weight")
+local model_name=$(get_ram_requirements "$model_key" "name")
+echo -e "\n${CYAN}📊 RAM Analysis: ${model_name}${NC}"
+echo -e "${BLUE}┌────────────────┬─────────┐${NC}"
+printf "${BLUE}│${NC} %-14s ${BLUE}│${NC} %-7s ${BLUE}│${NC}\n" "Disponível" "${available}GB"
+printf "${BLUE}│${NC} %-14s ${BLUE}│${NC} %-7s ${BLUE}│${NC}\n" "Peso modelo" "${weight}GB"
+printf "${BLUE}│${NC} %-14s ${BLUE}│${NC} %-7s ${BLUE}│${NC}\n" "Mínimo" "${min_ram}GB"
+printf "${BLUE}│${NC} %-14s ${BLUE}│${NC} %-7s ${BLUE}│${NC}\n" "Recomendado" "${rec_ram}GB"
+echo -e "${BLUE}└────────────────┴─────────┘${NC}"
+if [[ "$available" -lt "$min_ram" ]]; then
+critical "❌ BLOQUEADO: RAM insuficiente"
+[[ "$FORCE" -eq 0 ]] && err "Libere RAM ou use --force" || warn "⚠️ --force: risco aceito"
+return 1
+elif [[ "$available" -lt "$rec_ram" ]]; then
+warn "️ OK com ressalvas: RAM abaixo do recomendado"
+[[ "$FORCE" -eq 0 ]] && { read -p "👉 Continuar? [y/N]: " c; [[ "${c,,}" != "y" ]] && exit 0; }
+else
+log "✅ OK: RAM adequada para ${model_name}"
+fi
+return 0
+}
+
+apply_system_tuning() {
+[[ "$SKIP_TUNING" -eq 1 ]] && return 0
+log "Aplicando tuning de hardware para inferência LLM..."
+command -v zramctl &>/dev/null && [[ "$(cat /sys/block/zram0/disksize 2>/dev/null || echo 0)" -eq 0 ]] && {
+echo zstd | sudo tee /sys/block/zram0/comp_algorithm >/dev/null 2>&1
+echo 8G | sudo tee /sys/block/zram0/disksize >/dev/null 2>&1
+sudo mkswap /dev/zram0 >/dev/null 2>&1 && sudo swapon -p 100 /dev/zram0 >/dev/null 2>&1
+}
+[[ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]] && echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1
+# Swappiness 10 é CRÍTICO: mantém os pesos do modelo na RAM física, evitando stuttering
+sudo sysctl -w vm.swappiness=10 >/dev/null 2>&1
+[[ -f /sys/kernel/mm/transparent_hugepage/enabled ]] && echo madvise | sudo tee /sys/kernel/mm/transparent_hugepage/enabled >/dev/null 2>&1
+}
+
+create_containers() {
+log "Criando containers..."
+for c in ollama-service open-webui-gui; do
+docker ps -a --format '{{.Names}}' | grep -q "^${c}$" && docker rm -f "$c" >/dev/null 2>&1 || true
+done
+# --cpus="6.0" casa exatamente com os 6 núcleos físicos do 5600X, evitando overhead de SMT em inferência
+docker run -d --name ollama-service --restart always \
+-v ${BASE_DIR}/ollama-models:/root/.ollama -p 11434:11434 \
+--memory="20g" --memory-swap="24g" --memory-reservation="16g" \
+--cpus="6.0" --oom-score-adj=300 --pids-limit=256 \
+-e OLLAMA_NUM_THREADS=6 -e OLLAMA_NUM_PARALLEL=1 -e OLLAMA_MAX_LOADED_MODELS=1 \
+-e OLLAMA_NUM_CTX=4096 -e OLLAMA_FLASH_ATTENTION=1 -e OLLAMA_KV_CACHE_TYPE=q8_0 \
+-e OLLAMA_LOW_VRAM=1 -e OLLAMA_KEEP_ALIVE=-1 -e OLLAMA_DEBUG=1 \
+-e CUDA_VISIBLE_DEVICES="" -e ROCR_VISIBLE_DEVICES="" -e OLLAMA_GPU_LAYERS=0 \
+ollama/ollama:latest
+for i in $(seq 1 30); do
+docker ps --format '{{.Names}}' | grep -q "ollama-service" && break
+[[ "$i" -eq 30 ]] && err "Falha ao criar ollama-service"; sleep 1
+done
+docker run -d --name open-webui-gui --restart always \
+-p 8080:8080 --add-host=host.docker.internal:host-gateway \
+-v "${BASE_DIR}/AI-data/open-webui:/app/backend/data" \
+--memory="3g" --cpus="3" ghcr.io/open-webui/open-webui:main
+log "Aguardando API Ollama..."
+for i in $(seq 1 30); do
+curl -sf http://localhost:11434/api/tags >/dev/null 2>&1 && { log "✅ API online"; break; }
+[[ "$i" -eq 30 ]] && err "API não respondeu"; sleep 1
+done
+}
+
+select_model_inline() {
+local opts=("mistral" "qwen14b" "commandr" "none")
+echo -e "\n${CYAN}${BOLD}🧠 Modelos disponíveis:${NC}"
+echo -e "${YELLOW}️ 1 modelo na RAM por vez • Proteção OOM ativa${NC}\n"
+for i in "${!opts[@]}"; do
+key="${opts[$i]}"
+local name=$(get_ram_requirements "$key" "name")
+local weight=$(get_ram_requirements "$key" "weight")
+local rec=$(get_ram_requirements "$key" "recommended")
+printf "  %d. ${GREEN}%-8s${NC} → ${BLUE}%sGB${NC} (rec: %sGB) │ %s\n" "$((i+1))" "$key" "$weight" "$rec" "$name"
+done
+local choice=""
+while true; do
+read -p "\n👉 Escolha [1-4] (padrão: 1): " choice; choice=${choice:-1}
+[[ "$choice" =~ ^[1-4]$ ]] && break; echo -e "${RED}❌ Inválido${NC}"
+done
+SELECTED_MODEL_KEY="${opts[$((choice-1))]}"
+}
+
+prepare_models() {
+local model_key="$1"; local model_name=$(get_ram_requirements "$model_key" "name")
+log "Preparando: $model_name"
+case "$model_key" in
+"mistral")
+docker exec ollama-service ollama list 2>/dev/null | grep -q "mistral-nemo:latest" || \
+{ log "Baixando mistral-nemo:latest..."; timeout 600 docker exec ollama-service ollama pull mistral-nemo:latest || err "Timeout"; }
+docker exec ollama-service ollama list 2>/dev/null | grep -q "mistral-nemo-otimizado" || {
+docker exec ollama-service bash -c 'cat > /tmp/mf << "EOF"
+FROM mistral-nemo:latest
+PARAMETER num_ctx 4096; PARAMETER num_batch 256; PARAMETER num_keep 32
+PARAMETER temperature 0.2; PARAMETER top_p 0.9; PARAMETER top_k 40
+PARAMETER repeat_penalty 1.15; PARAMETER presence_penalty 0.1; PARAMETER use_mmap true
+SYSTEM "Assistente técnico: Docker, Go, Linux. Respostas concisas e práticas."
+EOF'
+docker exec ollama-service ollama create mistral-nemo-otimizado -f /tmp/mf
+};;
+"qwen14b")
+docker exec ollama-service ollama list 2>/dev/null | grep -q "qwen2.5-coder:14b-instruct-q8_0" || \
+{ log "Baixando qwen2.5-coder:14b..."; timeout 900 docker exec ollama-service ollama pull qwen2.5-coder:14b-instruct-q8_0 || err "Timeout"; }
+
+log "Compilando perfil 'qwen-dev-pro' (Prompt Otimizado para Contexto)..."
+docker exec ollama-service bash -c 'cat > /tmp/mf_qwen_dev << "MODELEOF"
+FROM qwen2.5-coder:14b-instruct-q8_0
+PARAMETER temperature 0.15
+PARAMETER top_p 0.95
+PARAMETER repeat_penalty 1.15
+PARAMETER num_ctx 4096
+SYSTEM "Qwen-Dev-Pro: Especialista sênior em Python/Go/Linux/Docker/DB. Hardware: Ryzen 5600X (6c), 31GB RAM.
+REGRAS:
+1. WORKSPACE: /home/carlos/Projetos/AI/<projeto>. Nunca ~/ ou relativo.
+2. ISOLAMENTO: Todo projeto exige Dockerfile + docker-compose.yml. Limites: mem_limit: 2g, cpus: '\''2.0'\''.
+3. PYTHON: Sempre crie touch <dir>/__init__.py para subdirs. Use venv.
+4. FORMATO: [Análise] -> [Árvore] -> [Código] -> <bash_script>...</bash_script>.
+5. SCRIPT BASH: Use mkdir -p, cd, cat <<'\''EOF'\'' . NUNCA rm -rf, sudo, mkfs, chmod 777.
+6. PERFORMANCE: Otimizações: uvloop, GOMAXPROCS=6, connection pooling.
+Seja conciso, técnico, production-ready."
+MODELEOF'
+docker exec ollama-service ollama rm qwen-dev-pro 2>/dev/null || true
+docker exec ollama-service ollama create qwen-dev-pro -f /tmp/mf_qwen_dev || warn "Falha ao criar qwen-dev-pro"
+;;
+"commandr")
+docker exec ollama-service ollama list 2>/dev/null | grep -q "command-r:latest" || \
+{ log "Baixando command-r:latest..."; timeout 900 docker exec ollama-service ollama pull command-r:latest || err "Timeout"; };;
+esac
+}
+
+warmup_model() {
+local model_key="$1"; local model_name=$(get_ram_requirements "$model_key" "name")
+[[ "$NO_WARMUP" -eq 1 || "$model_key" == "none" ]] && return 0
+log "Pré-carregando $model_name..."
+timeout 120 docker exec ollama-service ollama run "$model_name" "" >/dev/null 2>&1 || true
+local start=$(date +%s%N); local resp
+resp=$(timeout 60 docker exec ollama-service ollama run "$model_name" "OK?" 2>/dev/null | tail -1) || resp="timeout"
+local latency=$(( ($(date +%s%N) - start) / 1000000 ))
+log "Teste: '${resp}' (${latency}ms)"
+}
+
+show_final_report() {
+local model_key="$1"; local model_name=$(get_ram_requirements "$model_key" "name")
+echo -e "\n${GREEN}${BOLD}══════════════════════════════════╗${NC}"
+echo -e "${GREEN}${BOLD}║  ✅ SETUP CONCLUÍDO              ${NC}"
+echo -e "${GREEN}${BOLD}╚══════════════════════════════════╝${NC}"
+echo -e "${CYAN}Modelo:${NC} ${GREEN}${model_name}${NC} │ ${CYAN}WebUI:${NC} http://localhost:8080"
+echo -e "${YELLOW}Proteções:${NC} RAM check • Timeout 120s • OOM score 300 • Keep-alive 5m"
+log "Pronto: ${model_name}"
+}
+
+main() {
+validate_system; apply_system_tuning; create_containers
+[[ -z "$MODEL_CHOICE" ]] && { select_model_inline; MODEL_CHOICE="$SELECTED_MODEL_KEY"; }
+[[ "$MODEL_CHOICE" != "none" ]] && check_ram_with_margin "$MODEL_CHOICE" || true
+prepare_models "$MODEL_CHOICE"; warmup_model "$MODEL_CHOICE"; show_final_report "$MODEL_CHOICE"
+}
+main; exit 0
+
+==> shutdown_ia.sh <==
+#!/usr/bin/env bash
+# shutdown_ia.sh v3.3 - Encerramento seguro + Gestão automática de logs
+# Hardware: Ryzen 5 5600X | 31GB RAM | NVMe Swap | Ubuntu 24.04
+# Base: /home/carlos/Projetos/AI
+set -euo pipefail
+GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
+
+BASE_DIR="/home/carlos/Projetos/AI"
+LOG="${BASE_DIR}/shutdown_$(date +%Y%m%d_%H%M%S).log"
+log() { echo -e "${CYAN}[INFO]${NC} $(date '+%H:%M:%S') - $1" | tee -a "$LOG"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $(date '+%H:%M:%S') - $1" | tee -a "$LOG"; }
+
+echo -e "${CYAN}⏹️  Encerrando Laboratório de IA em ${BASE_DIR}...${NC}"
+
+# 1. Descarregar modelos da RAM (Método API Bulletproof)
+log " Descarregando modelos da RAM via API..."
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^ollama-service$"; then
+MODELS=$(docker exec ollama-service ollama ps 2>/dev/null | tail -n +2 | awk '{print $1}' || true)
+if [[ -n "$MODELS" ]]; then
+echo "$MODELS" | while read -r model; do
+[[ -z "$model" ]] && continue
+log "   ↪ Forçando unload de: $model"
+docker exec ollama-service curl -s -X POST http://localhost:11434/api/generate -d "{\"model\": \"$model\", \"keep_alive\": 0}" >/dev/null 2>&1 || true
+done
+sleep 2 # Aguarda o kernel liberar as páginas
+else
+log "   ℹ️ Nenhum modelo carregado na RAM"
+fi
+else
+warn "⚠️ Container ollama-service não encontrado"
+fi
+
+# 2. Parar containers
+log "📦 Parando containers..."
+for c in open-webui-gui ollama-service; do
+docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${c}$" && {
+docker stop "$c" >/dev/null 2>&1 && log "   ✅ $c parado" || warn "⚠️ Falha ao parar $c"
+}
+done
+
+# 3. Limpeza de cache (NVMe-friendly)
+log "🧹 Liberando caches de página..."
+sudo sync 2>/dev/null && echo 3 | sudo tee /proc/sys/vm/drop_caches >/dev/null 2>&1 || true
+
+# 4. Gestão Inteligente de Logs
+log "📂 Analisando crescimento de logs..."
+LOG_DIR="$BASE_DIR"
+MAX_LOG_MB=50
+RETENTION_DAYS=7
+OLD_COUNT=$(find "$LOG_DIR" -maxdepth 1 -name "*.log" -mtime +$RETENTION_DAYS 2>/dev/null | wc -l)
+if [[ "$OLD_COUNT" -gt 0 ]]; then
+find "$LOG_DIR" -maxdepth 1 -name "*.log" -mtime +$RETENTION_DAYS -delete
+log "   🗑️ ${OLD_COUNT} logs antigos (> ${RETENTION_DAYS} dias) removidos"
+fi
+CURRENT_KB=$(find "$LOG_DIR" -maxdepth 1 -name "*.log" -printf "%k\n" 2>/dev/null | awk '{s+=$1} END {print s+0}')
+CURRENT_MB=$((CURRENT_KB / 1024))
+if [[ "$CURRENT_MB" -ge "$MAX_LOG_MB" ]]; then
+log "   ⚠️ Crescimento anormal detectado: ${CURRENT_MB}MB (limite: ${MAX_LOG_MB}MB)"
+ARCHIVE="logs_archive_$(date +%Y%m%d_%H%M%S).tar.gz"
+if [[ "$CURRENT_KB" -gt 0 ]]; then
+tar -czf "${LOG_DIR}/${ARCHIVE}" -C "$LOG_DIR" $(find "$LOG_DIR" -maxdepth 1 -name "*.log" -printf "%f\n") 2>/dev/null
+rm -f "${LOG_DIR}"/*.log
+log "   ✅ Logs comprimidos e isolados em: ${ARCHIVE}"
+fi
+else
+log "   ✅ Logs dentro do padrão esperado (${CURRENT_MB}MB / ${MAX_LOG_MB}MB)"
+fi
+
+# 5. Relatório final
+MEM_FREE=$(free -h | awk '/^Mem:/{print $7}')
+SWAP_USED=$(free -h | awk '/^Swap:/{print $3}')
+echo -e "\n${GREEN}╔════════════════════════════════╗${NC}"
+echo -e "${GREEN}║  ✅ Shutdown concluído         ║${NC}"
+echo -e "${GREEN}╚════════════════════════════════╝${NC}"
+echo -e "${CYAN}Memória:${NC} Disponível ${MEM_FREE} | Swap usado ${SWAP_USED}"
+echo -e "${YELLOW}Próximo:${NC} ./setup_ia.sh para reiniciar"
+log "RAM disponível: $MEM_FREE | Logs geridos com sucesso"
+
+==> ollama-tui.sh <==
+#!/usr/bin/env bash
+# ollama-tui.sh v7.1 - TUI ultra-resiliente (zero exit silencioso)
+# Uso: bash ~/Projetos/AI/ollama-tui.sh │ Saída: Ctrl+C
+
+# NÃO usar set -e ou pipefail aqui — queremos tolerância a falhas
+set -u
+
+CYAN='\033[0;36m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; BLUE='\033[0;34m'; NC='\033[0m'
+REFRESH=2; CONTAINER="ollama-service"; API="http://localhost:11434"
+LOG="/workspace/tui_$(date +%Y%m%d_%H%M%S).log"
+
+log_tui() { echo "[$(date '+%H:%M:%S')] $1" >> "$LOG" 2>/dev/null || true; }
+trap 'tput cnorm 2>/dev/null; clear; echo -e "${CYAN}📊 Dashboard encerrado.${NC}"; log_tui "Encerrado"; exit 0' INT TERM EXIT
+
+# Testar se é TTY antes de usar tput
+if tty -s 2>/dev/null; then
+    clear 2>/dev/null || true
+    tput civis 2>/dev/null || true
+fi
+log_tui "Iniciado"
+
+# Barra ASCII (tolerante a erros)
+bar() {
+    local p="${1:-0}"
+    p="${p%%.*}"  # Remove decimal
+    [[ "$p" =~ ^[0-9]+$ ]] || p=0
+    [[ "$p" -gt 100 ]] && p=100
+    [[ "$p" -lt 0 ]] && p=0
+    local f=$((p / 5)); local e=$((20 - f))
+    local c="$GREEN"
+    [[ "$p" -ge 85 ]] && c="$RED"
+    [[ "$p" -ge 60 && "$p" -lt 85 ]] && c="$YELLOW"
+    local out=""; local i
+    for ((i=0; i<f; i++)); do out+="█"; done
+    for ((i=0; i<e; i++)); do out+="░"; done
+    printf "${c}[%s]${NC} %3s%%" "$out" "$p"
+}
+
+while true; do
+    tty -s 2>/dev/null && clear
+    START=$(date +%s 2>/dev/null || echo "0")
+    log_tui "Refresh cycle"
+    
+    # Header (sempre funciona)
+    echo -e "${CYAN}📊 OLLAMA CPU-NATIVE${NC} (Ctrl+C sair) │ Atualiza: ${REFRESH}s"
+    echo ""
+    
+    # Boxes
+    echo -e "${BLUE}╭──────────────────────────────────────╮${NC}   ${BLUE}╭──────────────────────────────────────╮${NC}"
+    echo -e "${BLUE}│${NC} 🖥️ SISTEMA                           ${BLUE}│${NC}   ${BLUE}│${NC} 🐳 DOCKER: ${CONTAINER}               ${BLUE}│${NC}"
+    
+    # System data (com fallbacks robustos)
+    RT=$(free -g 2>/dev/null | awk '/^Mem:/{print $2}' 2>/dev/null) || RT=31
+    RU=$(free -g 2>/dev/null | awk '/^Mem:/{print $3}' 2>/dev/null) || RU=0
+    [[ "$RT" =~ ^[0-9]+$ && "$RT" -gt 0 ]] || RT=31
+    [[ "$RU" =~ ^[0-9]+$ ]] || RU=0
+    RP=$(( RU * 100 / RT ))  # Bash arithmetic, sem awk
+    
+    LD=$(cut -d' ' -f1 /proc/loadavg 2>/dev/null) || LD="0.0"
+    SW=$(free -g 2>/dev/null | awk '/^Swap:/{print $3}' 2>/dev/null) || SW="0"
+    GV=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null) || GV="N/A"
+    
+    # ZRAM (tolerante)
+    ZP=0
+    if command -v zramctl &>/dev/null; then
+        ZD=$(zramctl 2>/dev/null | awk 'NR>1{gsub(/G|M/,""); print $3,$2}' 2>/dev/null) || ZD=""
+        if [[ -n "$ZD" ]]; then
+            ZU=$(echo "$ZD" | awk '{print $1}' 2>/dev/null) || ZU=0
+            ZT=$(echo "$ZD" | awk '{print $2}' 2>/dev/null) || ZT=1
+            [[ "$ZT" =~ ^[0-9]+$ && "$ZT" -gt 0 ]] && ZP=$(( ZU * 100 / ZT )) || ZP=0
+        fi
+    fi
+    
+    # Status do container (fallback seguro)
+    DOCKER_STATUS="N/A"
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${CONTAINER}$"; then
+        DOCKER_STATUS=$(docker ps --format '{{.Status}}' -f "name=$CONTAINER" 2>/dev/null | cut -d' ' -f1) || DOCKER_STATUS="Running"
+    fi
+    
+    echo -e "${BLUE}│${NC} RAM: $(bar "$RP")          ${BLUE}│${NC}   ${BLUE}│${NC} Status: ${DOCKER_STATUS} ${BLUE}│${NC}"
+    echo -e "${BLUE}│${NC} Load: ${LD} │ Swap: ${SW}G        ${BLUE}│${NC}   ${BLUE}│${NC}                                               ${BLUE}│${NC}"
+    echo -e "${BLUE}│${NC} Gov: ${GV} │ ZRAM: $(bar "$ZP")   ${BLUE}│${NC}   ${BLUE}│${NC}                                               ${BLUE}│${NC}"
+    
+    # Docker stats (com fallback)
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${CONTAINER}$"; then
+        ST=$(docker stats "$CONTAINER" --no-stream --format '{{.CPUPerc}}|{{.MemUsage}}|{{.MemPerc}}' 2>/dev/null) || ST="0%|0B|0%"
+        CP=$(echo "$ST" | cut -d'|' -f1 | tr -d '%') || CP="0"
+        MU=$(echo "$ST" | cut -d'|' -f2) || MU="0B"
+        MP=$(echo "$ST" | cut -d'|' -f3 | tr -d '%') || MP="0"
+        [[ "$CP" =~ ^[0-9.]+$ ]] || CP="0"
+        [[ "$MP" =~ ^[0-9.]+$ ]] || MP="0"
+        echo -e "${BLUE}│${NC}                                               ${BLUE}│${NC}   ${BLUE}│${NC} CPU: $(bar "${CP}")          ${BLUE}│${NC}"
+        echo -e "${BLUE}│${NC}                                               ${BLUE}│${NC}   ${BLUE}│${NC} RAM: $(bar "${MP}") ${MU}     ${BLUE}│${NC}"
+        echo -e "${BLUE}│${NC}                                               ${BLUE}│${NC}   ${BLUE}│${NC} Status: ${GREEN}✅ Running${NC}                  ${BLUE}│${NC}"
+    else
+        echo -e "${BLUE}│${NC}                                               ${BLUE}│${NC}   ${BLUE}│${NC} Status: ${RED}⚠️ Offline${NC}                   ${BLUE}│${NC}"
+    fi
+    
+    echo -e "${BLUE}╰──────────────────────────────────────╯${NC}   ${BLUE}╰──────────────────────────────────────╯${NC}"
+    echo ""
+    echo -e "${BLUE}╭──────────────────────────────────────────────────────────────────────────────╮${NC}"
+    echo -e "${BLUE}│${NC} 🧠 MODELOS ATIVOS                                                        ${BLUE}│${NC}"
+    
+    if docker exec "$CONTAINER" ollama ps &>/dev/null; then
+        ML=$(docker exec "$CONTAINER" ollama ps 2>/dev/null | tail -n +2) || ML=""
+        if [[ -n "$ML" ]]; then
+            while IFS= read -r ln; do
+                [[ -z "$ln" ]] && continue
+                MN=$(echo "$ln" | awk '{print $1}' 2>/dev/null) || continue
+                ME=$(echo "$ln" | awk '{print $NF}' 2>/dev/null) || ME="?"
+                echo -e "${BLUE}│${NC} 🟢 ${MN} ${YELLOW}(exp: ${ME})${NC}"
+            done <<< "$ML"
+        else
+            echo -e "${BLUE}│${NC} ⏳ Nenhum modelo carregado"
+        fi
+    else
+        echo -e "${BLUE}│${NC} ❌ API/Container offline"
+    fi
+    echo -e "${BLUE}╰──────────────────────────────────────────────────────────────────────────────╯${NC}"
+    
+    # Footer (API check tolerante)
+    if curl -sf "$API/api/tags" &>/dev/null; then
+        CT=$(curl -sf "$API/api/tags" 2>/dev/null | jq -r '.models | length' 2>/dev/null) || CT="?"
+        [[ -z "$CT" || "$CT" == "null" ]] && CT="?"
+        EL=$(($(date +%s 2>/dev/null || echo "$START") - START))
+        echo -e "🔌 API: ${GREEN}OK${NC} │ Modelos: $CT │ Render: ${EL}s"
+        log_tui "API OK, models: $CT"
+    else
+        echo -e "🔌 API: ${RED}OFFLINE${NC}"
+        log_tui "API OFFLINE"
+    fi
+    
+    # RAM warning inline
+    [[ "$RP" -ge 85 ]] && echo -e "${RED}⚠️ RAM CRÍTICA: ${RP}% — descarregue modelos!${NC}"
+    
+    sleep "$REFRESH"
+done
+
+==> status_ia.sh <==
+#!/usr/bin/env bash
+# status_ia.sh v2.1 - Visão concisa do ecossistema IA (quotes blindados)
+# Base: /home/carlos/Projetos/AI
+set -euo pipefail
+CYAN='\033[0;36m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; BLUE='\033[0;34m'; NC='\033[0m'
+BOLD='\033[1m'
+
+BASE_DIR="/home/carlos/Projetos/AI"
+LOG="${BASE_DIR}/status_$(date +%Y%m%d_%H%M%S).log"
+{ echo "=== STATUS $(date) ==="; } > "$LOG" 2>&1 || true
+
+echo -e "${CYAN}${BOLD}📊 Status IA${NC} │ $(date '+%H:%M') │ Ryzen 5600X │ 31GB RAM"
+echo -e "${BLUE}┌────────────────────────────────────────┐${NC}"
+
+echo -e "${BLUE}│${NC} ${BOLD}🧠 Modelos em RAM${NC}"
+echo -e "${BLUE}├────────────────────────────────────────┤${NC}"
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^ollama-service$"; then
+ACTIVE=$(docker exec ollama-service ollama ps 2>/dev/null | tail -n +2 || true)
+if [[ -n "$ACTIVE" ]]; then
+echo "$ACTIVE" | while IFS= read -r line; do
+[[ -z "$line" ]] && continue
+M_NAME=$(echo "$line" | awk '{print $1}')
+M_EXP=$(echo "$line" | awk '{print $NF}')
+echo -e "${BLUE}│${NC} 🟢 ${M_NAME} ${YELLOW}(exp: ${M_EXP})${NC}" | tee -a "$LOG"
+done
+else
+CPU=$(docker stats ollama-service --no-stream --format "{{.CPUPerc}}" 2>/dev/null || echo "0%")
+echo -e "${BLUE}│${NC} 💤 Standby ${YELLOW}(CPU: ${CPU})${NC}" | tee -a "$LOG"
+fi
+else
+echo -e "${BLUE}│${NC} ${RED}⚠️ Containers parados${NC}" | tee -a "$LOG"
+fi
+
+echo -e "${BLUE}├────────────────────────────────────────┤${NC}"
+echo -e "${BLUE}│${NC} ${BOLD}📊 RAM Analysis${NC}"
+echo -e "${BLUE}├────────────────┬─────────┤${NC}"
+read -r MEM_AVAIL MEM_USED MEM_TOTAL < <(free -g | awk '/^Mem:/{print $7, $3, $2}')
+printf "${BLUE}│${NC} %-14s ${BLUE}│${NC} %-7s ${BLUE}│${NC}\n" "Disponível" "${MEM_AVAIL}GB" | tee -a "$LOG"
+printf "${BLUE}│${NC} %-14s ${BLUE}│${NC} %-7s ${BLUE}│${NC}\n" "Usada" "${MEM_USED}GB" | tee -a "$LOG"
+printf "${BLUE}│${NC} %-14s ${BLUE}│${NC} %-7s ${BLUE}│${NC}\n" "Total" "${MEM_TOTAL}GB" | tee -a "$LOG"
+echo -e "${BLUE}└────────────────┴─────────┘${NC}"
+
+echo -e "\n${CYAN}Conclusões:${NC}"
+if [[ "${MEM_AVAIL:-0}" -ge 22 ]]; then
+echo -e "  ${GREEN}✅ OK${NC} para qwen2.5-coder:14b ou mistral-nemo"
+elif [[ "${MEM_AVAIL:-0}" -ge 12 ]]; then
+echo -e "  ${YELLOW}⚠️ OK${NC} apenas para mistral-nemo (feche abas para qwen14b)"
+else
+echo -e "  ${RED}❌ RAM crítica${NC} — libere memória antes de carregar modelos"
+fi
+
+echo -e "\n${CYAN}Acesso:${NC} WebUI: http://localhost:8080 │ CLI: docker exec ollama-service ollama run <modelo> \"...\""
+echo -e "${YELLOW}Log completo:${NC} $LOG"

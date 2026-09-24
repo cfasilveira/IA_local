@@ -1,0 +1,525 @@
+➜ Crie um projeto Python FastAPI chamado "mini-api" dentro de /home/carlos/Projetos/AI. 
+Quero uma estrutura profissional, mas simples, com os seguintes subdiretórios:
+
+    core/ (para configurações)
+    routers/ (para os endpoints)
+    schemas/ (para modelos de dados Pydantic)
+
+Inclua:
+
+    Um requirements.txt na raiz.
+    Um main.py na raiz que inicializa o app e inclui o router.
+    Um arquivo config.py dentro de core/.
+    Um arquivo items.py dentro de routers/ com um endpoint GET /it
+ems e um GET /health.
+    Um ⏳ Processando arquitetura...
+arquivo item.py dentr
+o de schemas/.
+
+Gere o script bash completo e seguro para criar toda essa estrutura de pastas e arquivos de uma vez.
+<bash_script>
+mkdir -p /home/carlos/Projetos/AI/mini-api
+cd /home/carlos/Projetos/AI/mini-api
+
+python3 -m venv venv
+
+cat <<EOF > requirements.txt
+fastapi
+uvicorn[standard]
+EOF
+
+venv/bin/pip install -r requirements.txt
+
+cat <<'EOF' > main.py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World"}
+EOF
+
+cat <<'EOF' > run.sh
+#!/bin/bash
+source venv/bin/activate
+uvicorn main:app --reload
+EOF
+
+chmod +x run.sh
+</bash_script>
+
+═══════════════════════════════════════════════════════
+ ⚠️  SCRIPT DE AUTOMAÇÃO DETECTADO
+═══════════════════════════════════════════════════════
+Conteúdo do script:
+───────────────────────────────────────────────────────
+mkdir -p /home/carlos/Projetos/AI/mini-api
+cd /home/carlos/Projetos/AI/mini-api
+
+python3 -m venv venv
+
+cat <<EOF > requirements.txt
+fastapi
+uvicorn[standard]
+EOF
+
+venv/bin/pip install -r requirements.txt
+
+cat <<'EOF' > main.py
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World"}
+EOF
+
+cat <<'EOF' > run.sh
+#!/bin/bash
+source venv/bin/activate
+uvicorn main:app --reload
+EOF
+
+chmod +x run.sh
+───────────────────────────────────────────────────────
+
+Abrir no nano para validação/edição? (y/N): 
+✅ Confirmar EXECUÇÃO em /home/carlos/Projetos/AI? (y/N): ⛔ Cancelado. Script salvo em /tmp/qwen_generated_setup.sh
+
+
+➜ 
+⏳ Processando arquitetura...
+
+<bash_script>
+mkdir -p /home/carlos/Projetos/AI/mini-api/core
+cd /home/carlos/Projetos/AI/mini-api
+
+python3 -m venv venv
+
+cat <<EOF > requirements.txt
+fastapi
+uvicorn[standard]
+EOF
+
+venv/bin/pip install -r requirements.txt
+
+cat <<'EOF' > main.py
+from fastapi import FastAPI
+from core.config import settings
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World", "environment": settings.environment}
+EOF
+
+cat <<'EOF' > core/config.py
+class Settings:
+    environment: str = "development"
+
+settings = Settings()
+EOF
+
+cat <<'EOF' > run.sh
+#!/bin/bash
+source venv/bin/activate
+uvicorn main:app --reload
+EOF
+
+chmod +x run.sh
+</bash_script>
+
+═══════════════════════════════════════════════════════
+ ⚠️  SCRIPT DE AUTOMAÇÃO DETECTADO
+═══════════════════════════════════════════════════════
+Conteúdo do script:
+───────────────────────────────────────────────────────
+mkdir -p /home/carlos/Projetos/AI/mini-api/core
+cd /home/carlos/Projetos/AI/mini-api
+
+python3 -m venv venv
+
+cat <<EOF > requirements.txt
+fastapi
+uvicorn[standard]
+EOF
+
+venv/bin/pip install -r requirements.txt
+
+cat <<'EOF' > main.py
+from fastapi import FastAPI
+from core.config import settings
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World", "environment": settings.environment}
+EOF
+
+cat <<'EOF' > core/config.py
+class Settings:
+    environment: str = "development"
+
+settings = Settings()
+EOF
+
+cat <<'EOF' > run.sh
+#!/bin/bash
+source venv/bin/activate
+uvicorn main:app --reload
+EOF
+
+chmod +x run.sh
+───────────────────────────────────────────────────────
+
+Abrir no nano para validação/edição? (y/N): 
+✅ Confirmar EXECUÇÃO em /home/carlos/Projetos/AI? (y/N): ⛔ Cancelado. Script salvo em /tmp/qwen_generated_setup.sh
+
+
+➜ ➜ 
+⏳ Processando arquitetura...
+
+Desculpe, mas sua mensagem foi cortada. Por favor, forneça mais detalhes para que eu possa ajudar corretamente.
+
+
+➜ ➜ 
+⏳ Processando arquitetura...
+
+<bash_script>
+mkdir -p /home/carlos/Projetos/AI/mini-api/core
+cd /home/carlos/Projetos/AI/mini-api
+
+cat <<EOF > requirements.txt
+fastapi
+uvicorn[standard]
+EOF
+
+python3 -m venv venv
+
+venv/bin/pip install -r requirements.txt
+
+cat <<'EOF' > main.py
+from fastapi import FastAPI
+from core.config import settings
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World", "environment": settings.environment}
+EOF
+
+cat <<'EOF' > core/config.py
+class Settings:
+    environment: str = "development"
+
+settings = Settings()
+EOF
+
+cat <<'EOF' > run.sh
+#!/bin/bash
+source venv/bin/activate
+uvicorn main:app --reload
+EOF
+
+chmod +x run.sh
+</bash_script>
+
+═══════════════════════════════════════════════════════
+ ⚠️  SCRIPT DE AUTOMAÇÃO DETECTADO
+═══════════════════════════════════════════════════════
+Conteúdo do script:
+───────────────────────────────────────────────────────
+mkdir -p /home/carlos/Projetos/AI/mini-api/core
+cd /home/carlos/Projetos/AI/mini-api
+
+cat <<EOF > requirements.txt
+fastapi
+uvicorn[standard]
+EOF
+
+python3 -m venv venv
+
+venv/bin/pip install -r requirements.txt
+
+cat <<'EOF' > main.py
+from fastapi import FastAPI
+from core.config import settings
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World", "environment": settings.environment}
+EOF
+
+cat <<'EOF' > core/config.py
+class Settings:
+    environment: str = "development"
+
+settings = Settings()
+EOF
+
+cat <<'EOF' > run.sh
+#!/bin/bash
+source venv/bin/activate
+uvicorn main:app --reload
+EOF
+
+chmod +x run.sh
+───────────────────────────────────────────────────────
+
+Abrir no nano para validação/edição? (y/N): 
+✅ Confirmar EXECUÇÃO em /home/carlos/Projetos/AI? (y/N): ⛔ Cancelado. Script salvo em /tmp/qwen_generated_setup.sh
+
+
+➜ 
+⏳ Processando arquitetura...
+
+<bash_script>
+mkdir -p /home/carlos/Projetos/AI/mini-api/core/routers
+cd /home/carlos/Projetos/AI/mini-api
+
+cat <<EOF > requirements.txt
+fastapi
+uvicorn[standard]
+EOF
+
+python3 -m venv venv
+
+venv/bin/pip install -r requirements.txt
+
+cat <<'EOF' > main.py
+from fastapi import FastAPI
+from core.config import settings
+from routers import items
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World", "environment": settings.environment}
+
+app.include_router(items.router, prefix="/items")
+EOF
+
+cat <<'EOF' > core/config.py
+class Settings:
+    environment: str = "development"
+
+settings = Settings()
+EOF
+
+cat <<'EOF' > routers/items.py
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.get("/")
+def read_items():
+    return {"message": "List of items"}
+
+@router.get("/health")
+def health_check():
+    return {"status": "UP"}
+EOF
+
+cat <<'EOF' > run.sh
+#!/bin/bash
+source venv/bin/activate
+uvicorn main:app --reload
+EOF
+
+chmod +x run.sh
+</bash_script>
+
+═══════════════════════════════════════════════════════
+ ⚠️  SCRIPT DE AUTOMAÇÃO DETECTADO
+═══════════════════════════════════════════════════════
+Conteúdo do script:
+───────────────────────────────────────────────────────
+mkdir -p /home/carlos/Projetos/AI/mini-api/core/routers
+cd /home/carlos/Projetos/AI/mini-api
+
+cat <<EOF > requirements.txt
+fastapi
+uvicorn[standard]
+EOF
+
+python3 -m venv venv
+
+venv/bin/pip install -r requirements.txt
+
+cat <<'EOF' > main.py
+from fastapi import FastAPI
+from core.config import settings
+from routers import items
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World", "environment": settings.environment}
+
+app.include_router(items.router, prefix="/items")
+EOF
+
+cat <<'EOF' > core/config.py
+class Settings:
+    environment: str = "development"
+
+settings = Settings()
+EOF
+
+cat <<'EOF' > routers/items.py
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.get("/")
+def read_items():
+    return {"message": "List of items"}
+
+@router.get("/health")
+def health_check():
+    return {"status": "UP"}
+EOF
+
+cat <<'EOF' > run.sh
+#!/bin/bash
+source venv/bin/activate
+uvicorn main:app --reload
+EOF
+
+chmod +x run.sh
+───────────────────────────────────────────────────────
+
+Abrir no nano para validação/edição? (y/N): 
+✅ Confirmar EXECUÇÃO em /home/carlos/Projetos/AI? (y/N): ⛔ Cancelado. Script salvo em /tmp/qwen_generated_setup.sh
+
+
+➜ 
+⏳ Processando arquitetura...
+
+<bash_script>
+mkdir -p /home/carlos/Projetos/AI/mini-api/core/routers
+
+cat <<EOF > /home/carlos/Projetos/AI/mini-api/requirements.txt
+fastapi
+uvicorn[standard]
+EOF
+
+python3 -m venv /home/carlos/Projetos/AI/mini-api/venv
+
+/home/carlos/Projetos/AI/mini-api/venv/bin/pip install -r /home/carlos/Projetos/AI/mini-api/requirements.txt
+
+cat <<'EOF' > /home/carlos/Projetos/AI/mini-api/main.py
+from fastapi import FastAPI
+from core.config import settings
+from routers import items
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World", "environment": settings.environment}
+
+app.include_router(items.router, prefix="/items")
+EOF
+
+cat <<'EOF' > /home/carlos/Projetos/AI/mini-api/core/config.py
+class Settings:
+    environment: str = "development"
+
+settings = Settings()
+EOF
+
+cat <<'EOF' > /home/carlos/Projetos/AI/mini-api/routers/items.py
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.get("/")
+def read_items():
+    return {"message": "List of items"}
+
+@router.get("/health")
+def health_check():
+    return {"status": "UP"}
+EOF
+
+cat <<'EOF' > /home/carlos/Projetos/AI/mini-api/run.sh
+#!/bin/bash
+source venv/bin/activate
+uvicorn main:app --reload
+EOF
+
+chmod +x /home/carlos/Projetos/AI/mini-api/run.sh
+</bash_script>
+
+═══════════════════════════════════════════════════════
+ ⚠️  SCRIPT DE AUTOMAÇÃO DETECTADO
+═══════════════════════════════════════════════════════
+Conteúdo do script:
+───────────────────────────────────────────────────────
+mkdir -p /home/carlos/Projetos/AI/mini-api/core/routers
+
+cat <<EOF > /home/carlos/Projetos/AI/mini-api/requirements.txt
+fastapi
+uvicorn[standard]
+EOF
+
+python3 -m venv /home/carlos/Projetos/AI/mini-api/venv
+
+/home/carlos/Projetos/AI/mini-api/venv/bin/pip install -r /home/carlos/Projetos/AI/mini-api/requirements.txt
+
+cat <<'EOF' > /home/carlos/Projetos/AI/mini-api/main.py
+from fastapi import FastAPI
+from core.config import settings
+from routers import items
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World", "environment": settings.environment}
+
+app.include_router(items.router, prefix="/items")
+EOF
+
+cat <<'EOF' > /home/carlos/Projetos/AI/mini-api/core/config.py
+class Settings:
+    environment: str = "development"
+
+settings = Settings()
+EOF
+
+cat <<'EOF' > /home/carlos/Projetos/AI/mini-api/routers/items.py
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.get("/")
+def read_items():
+    return {"message": "List of items"}
+
+@router.get("/health")
+def health_check():
+    return {"status": "UP"}
+EOF
+
+cat <<'EOF' > /home/carlos/Projetos/AI/mini-api/run.sh
+#!/bin/bash
+source venv/bin/activate
+uvicorn main:app --reload
+EOF
+
+chmod +x /home/carlos/Projetos/AI/mini-api/run.sh
+───────────────────────────────────────────────────────
+
+Abrir no nano para validação/edição? (y/N): 
+

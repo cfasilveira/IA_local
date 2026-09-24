@@ -1,0 +1,267 @@
+#!/usr/bin/env bash
+# =============================================================================
+# qwen-dev-cli.sh v4.5 - Auto-Diagnóstico com LLM (INTEGRADO AO GATEKEEPER)
+# =============================================================================
+set -uo pipefail
+
+MODEL="qwen-dev-pro"
+WORKSPACE="/home/carlos/Projetos/AI"
+HISTORY_FILE="/tmp/qwen_dev_history.json"
+TEMP_SCRIPT="/tmp/qwen_generated_setup.sh"
+ERROR_LOG="/tmp/qwen_last_error.log"
+MAX_RETRY=3
+
+GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; BLUE='\033[0;34m'; NC='\033[0m'
+BOLD='\033[1m'
+
+# [FAIL FIRST 1: Verificação de Container]
+CONTAINER_STATUS=$(docker inspect -f '{{.State.Running}}' ollama-service 2>/dev/null)
+if [ "$CONTAINER_STATUS" != "true" ]; then
+    echo -e "${RED}[ERRO]${NC} Container 'ollama-service' não está rodando." >&2
+    echo -e "${YELLOW}[DICA]${NC} Execute: cd /home/carlos/Projetos/AI && ./setup_ia.sh --model qwen14b" >&2
+    exit 1
+fi
+
+# [FAIL FIRST 2: Verificação de Modelo Instalado]
+if ! docker exec ollama-service ollama list 2>/dev/null | grep -q "^${MODEL}"; then
+    echo -e "${RED}[ERRO]${NC} Modelo '${MODEL}' não encontrado no Ollama." >&2
+    echo -e "${YELLOW}[DICA]${NC} Execute: cd /home/carlos/Projetos/AI && ./setup_ia.sh --model qwen14b" >&2
+    exit 1
+fi
+
+# [FAIL FIRST 3: Verificação de RAM + AUTORIZAÇÃO DO GATEKEEPER]
+echo -e "${BLUE}────────────────────────────────────────────────────────${NC}"
+echo -e "${CYAN}🛡️  Consultando Gatekeeper (ia_gatekeeper.sh)...${NC}"
+if [[ -f "$WORKSPACE/ia_gatekeeper.sh" ]]; then
+    if ! bash "$WORKSPACE/ia_gatekeeper.sh" authorize "$MODEL"; then
+        echo -e "${RED}❌ [GATEKEEPER] Acesso negado!${NC}"
+        echo -e "${YELLOW}   O Gatekeeper detectou conflito de recursos. Rode ./shutdown_ia.sh antes.${NC}"
+        exit 1
+    fi
+else
+    # Fallback seguro caso o Gatekeeper não exista ainda
+    local RAM_AVAILABLE=$(free -g | awk '/^Mem:/{print $7}')
+    echo -e "${YELLOW}⚠️  Gatekeeper não encontrado. Usando Fallback manual...${NC}"
+    if [[ "$RAM_AVAILABLE" -lt 16 ]]; then
+        echo -e "${RED}[ERRO]${NC} RAM insuficiente (${RAM_AVAILABLE}GB) para Qwen 14B." >&2
+        exit 1
+    fi
+    echo -e "${GREEN}✅ Fallback OK: RAM disponível (${RAM_AVAILABLE}GB)${NC}"
+fi
+echo -e "${BLUE}────────────────────────────────────────────────────────${NC}\n"
+
+# ─────────────────────────────────────────────────────────────
+# INICIALIZAÇÃO (mantida)
+# ─────────────────────────────────────────────────────────────
+mkdir -p "$WORKSPACE"
+[[ -f "$HISTORY_FILE" ]] || echo '[]' > "$HISTORY_FILE"
+echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}${BOLD}  🤖 Qwen Dev Pro CLI (Auto-Diagnóstico v4.5)${NC}"
+echo -e "${BLUE}  Modelo Ativo:   ${GREEN}${MODEL}${NC}"
+echo -e "${BLUE}  Gatekeeper:     ${GREEN}ATIVO${NC}"
+echo -e "${BLUE}  Comandos: 'reset' | 'diag' | 'exit'${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}\n"
+
+# [Função diagnos_error mantida igual à versão v4.4]
+diagnose_error() {
+    local script_content="$1"
+    local error_output="$2"
+    local attempt="$3"
+    echo -e "\n${YELLOW}🔍 DIAGNOSTICANDO ERRO (tentativa ${attempt}/${MAX_RETRY})...${NC}"
+    echo -e "${CYAN}   Enviando erro ao modelo para análise...${NC}\n"
+    local diag_prompt="O script bash abaixo falhou durante a execução.
+    
+ERRO CAPTURADO:
+${error_output}
+
+SCRIPT ORIGINAL:
+${script_content}
+
+TAREFA:
+1. Analise o erro exato.
+2. Identifique a causa raiz (sintaxe, caminho, permissão, dependência).
+3. Gere um NOVO <bash_script> corrigido que resolva o problema.
+4. Mantenha o mesmo objetivo do script original.
+5. Use caminhos absolutos em /home/carlos/Projetos/AI/.
+6. NUNCA use rm -rf, sudo, ou comandos destrutivos.
+
+Seja conciso e direto ao ponto."
+
+    local response
+    response=$(curl -s --max-time 600 http://localhost:11434/api/chat -H "Content-Type: application/json" -d "$(jq -n \
+        --arg model "$MODEL" \
+        --arg content "$diag_prompt" \
+        '{model: $model, messages: [{"role": "user", "content": $content}], stream: false}')" 2>/dev/null) || {
+        echo -e "${RED}[ERRO]${NC} Falha ao consultar modelo para diagnóstico." >&2
+        return 1
+    }
+    
+    local fixed_script
+    fixed_script=$(echo "$response" | jq -r '.message.content // ""')
+    if echo "$fixed_script" | grep -q "<bash_script>"; then
+        fixed_script=$(echo "$fixed_script" | sed -n '/<bash_script>/,/<\/bash_script>/p' | sed '1d;$d' | tr -d '\r' | sed 's/^```bash$//;s/^```$//')
+        echo "$fixed_script" > "$TEMP_SCRIPT"
+        chmod +x "$TEMP_SCRIPT"
+        echo -e "${GREEN}✅ Modelo gerou script corrigido.${NC}"
+        return 0
+    else
+        echo -e "${RED}[ERRO]${NC} Modelo não retornou <bash_script> válido." >&2
+        echo -e "${YELLOW}Resposta recebida:${NC}"
+        echo "$fixed_script"
+        return 1
+    fi
+}
+
+# [Loop principal mantido]
+while true; do
+    TOTAL_MESSAGES=$(jq 'length' "$HISTORY_FILE" 2>/dev/null || echo "0")
+    if [[ "$TOTAL_MESSAGES" -gt 20 ]]; then
+        echo -e "${YELLOW}⚠️  Histórico grande: ${TOTAL_MESSAGES} mensagens. Considere usar 'reset'.${NC}\n"
+    fi
+    echo -e "${GREEN}➜ Cole seu prompt abaixo.${NC}"
+    echo -e "${YELLOW}   IMPORTANTE: Quando terminar, digite exatamente:${NC}"
+    echo -e "${RED}   FIM${NC}"
+    echo -e "${YELLOW}   (em maiúsculas, sem espaços, em uma linha separada)${NC}"
+    USER_PROMPT=""
+    while IFS= read -r line; do
+        clean_line=$(echo "$line" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [[ "$clean_line" == "FIM" ]]; then break; fi
+        USER_PROMPT+="$clean_line"$'\n'
+    done
+    USER_PROMPT="${USER_PROMPT%$'\n'}"
+    if [[ "${USER_PROMPT,,}" == "exit" || "${USER_PROMPT,,}" == "sair" ]]; then
+        echo -e "\n${CYAN}Saindo. Histórico mantido.${NC}"
+        break
+    elif [[ "${USER_PROMPT,,}" == "reset" || "${USER_PROMPT,,}" == "limpar" ]]; then
+        echo '[]' > "$HISTORY_FILE"
+        echo -e "${YELLOW}🧹 Memória limpa.${NC}"
+        continue
+    elif [[ "${USER_PROMPT,,}" == "diag" || "${USER_PROMPT,,}" == "diagnostico" ]]; then
+        if [[ -f "$ERROR_LOG" ]]; then
+            echo -e "\n${YELLOW}📋 Último erro capturado:${NC}"
+            cat "$ERROR_LOG"
+            echo -e "\n${CYAN}Deseja que o modelo analise este erro? (y/N): ${NC}"
+            read -p "" run_diag
+            if [[ "${run_diag,,}" == "y" ]]; then
+                last_script=$(cat "$TEMP_SCRIPT" 2>/dev/null || echo "Script não disponível")
+                last_error=$(cat "$ERROR_LOG")
+                diagnose_error "$last_script" "$last_error" "manual"
+                if [[ -f "$TEMP_SCRIPT" ]]; then
+                    echo -e "\n${CYAN}Conteúdo do script corrigido:${NC}"
+                    cat "$TEMP_SCRIPT"
+                    read -p $'\n✅ Executar script corrigido? (y/N): ' exec_confirm
+                    if [[ "${exec_confirm,,}" == "y" ]]; then
+                        echo -e "${GREEN}🚀 Executando...${NC}"
+                        bash "$TEMP_SCRIPT" 2>&1 | tee /tmp/exec_output.log
+                        if [ ${PIPESTATUS[0]} -eq 0 ]; then
+                            echo -e "${GREEN}✅ Execução bem-sucedida!${NC}"
+                        else
+                            echo -e "${RED}⚠️ Ainda há erros. Tente 'diag' novamente.${NC}"
+                        fi
+                    fi
+                fi
+            fi
+        else
+            echo -e "${YELLOW}Nenhum erro recente para diagnosticar.${NC}"
+        fi
+        continue
+    elif [[ -z "$USER_PROMPT" ]]; then
+        continue
+    fi
+
+    echo -e "\n${YELLOW}⏳ Processando (pode levar 2-10 minutos)...${NC}"
+    echo -e "${CYAN}   Aguarde, o modelo está gerando código...${NC}\n"
+
+    jq --arg role "user" --arg content "$USER_PROMPT" '. + [{"role": $role, "content": $content}]' "$HISTORY_FILE" > /tmp/hist_tmp.json
+    mv /tmp/hist_tmp.json "$HISTORY_FILE"
+    CONTEXT_MESSAGES=$(jq ".[-10:]" "$HISTORY_FILE")
+    RESPONSE=$(curl -s --max-time 600 http://localhost:11434/api/chat -H "Content-Type: application/json" -d "$(jq -n \
+        --arg model "$MODEL" --argjson messages "$CONTEXT_MESSAGES" '{model: $model, messages: $messages, stream: false}')" 2>/dev/null) || {
+        echo -e "${RED}[ERRO]${NC} Timeout ou falha na conexão com a API Ollama." >&2
+        echo -e "${YELLOW}[DICA]${NC} O modelo pode estar sobrecarregado. Aguarde 30s e tente novamente." >&2
+        continue
+    }
+    if echo "$RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+        ERROR_MSG=$(echo "$RESPONSE" | jq -r '.error')
+        echo -e "${RED}[ERRO]${NC} API Ollama: $ERROR_MSG" >&2
+        echo -e "${YELLOW}[DICA]${NC} Use 'reset' para limpar o histórico." >&2
+        continue
+    fi
+    ASSISTANT_REPLY=$(echo "$RESPONSE" | jq -r '.message.content // "Erro ao processar resposta"')
+    if [[ "$ASSISTANT_REPLY" == "Erro ao processar resposta" || -z "$ASSISTANT_REPLY" ]]; then
+        echo -e "${RED}[ERRO]${NC} Resposta do modelo vazia ou inválida." >&2
+        continue
+    fi
+    jq --arg role "assistant" --arg content "$ASSISTANT_REPLY" '. + [{"role": $role, "content": $content}]' "$HISTORY_FILE" > /tmp/hist_tmp.json
+    mv /tmp/hist_tmp.json "$HISTORY_FILE"
+    echo "$ASSISTANT_REPLY" | tr -d '\r'
+    if echo "$ASSISTANT_REPLY" | grep -q "<bash_script>"; then
+        echo -e "\n${BLUE}═══════════════════════════════════════════════════════${NC}"
+        echo -e "${YELLOW} ⚠️  SCRIPT DE AUTOMAÇÃO DETECTADO${NC}"
+        echo -e "${BLUE}═══════════════════════════════════════════════════════${NC}"
+        SCRIPT_CONTENT=$(echo "$ASSISTANT_REPLY" | sed -n '/<bash_script>/,/<\/bash_script>/p' | sed '1d;$d' | tr -d '\r' | sed 's/^```bash$//;s/^```$//')
+        if echo "$SCRIPT_CONTENT" | grep -qE 'rm -rf|sudo|mkfs|dd|:(){:|:&;:}|chmod 777|chown'; then
+            echo -e "${RED}🚫 BLOQUEADO: Comandos perigosos detectados no script.${NC}"
+            echo -e "${YELLOW}Solicite uma versão segura ao assistente.${NC}"
+            continue
+        fi
+        echo "$SCRIPT_CONTENT" > "$TEMP_SCRIPT"
+        chmod +x "$TEMP_SCRIPT"
+        echo -e "${CYAN}Conteúdo do script:${NC}"
+        echo -e "${CYAN}───────────────────────────────────────────────────────${NC}"
+        cat "$TEMP_SCRIPT"
+        echo -e "${CYAN}───────────────────────────────────────────────────────${NC}"
+        read -p $'\nAbrir no nano para validação/edição? (y/N): ' edit_confirm
+        if [[ "${edit_confirm,,}" == "y" ]]; then
+            nano -l "$TEMP_SCRIPT"
+        fi
+        read -p $'\n✅ Confirmar EXECUÇÃO em '"$WORKSPACE"'? (y/N): ' exec_confirm
+        if [[ "${exec_confirm,,}" == "y" ]]; then
+            echo -e "${GREEN}🚀 Executando...${NC}"
+            attempt=1; success=false
+            while [[ $attempt -le $MAX_RETRY ]]; do
+                echo -e "\n${CYAN}── Tentativa ${attempt}/${MAX_RETRY} ─${NC}"
+                exec_output=$(bash "$TEMP_SCRIPT" 2>&1)
+                exit_code=$?
+                echo "$exec_output"
+                if [[ $exit_code -eq 0 ]]; then
+                    echo -e "\n${GREEN}✅ Estrutura criada com sucesso!${NC}"
+                    success=true; break
+                else
+                    echo -e "\n${RED}⚠️ Erro na execução (código ${exit_code}).${NC}"
+                    echo "$exec_output" > "$ERROR_LOG"
+                    if [[ $attempt -lt $MAX_RETRY ]]; then
+                        echo -e "\n${YELLOW}Deseja que o modelo analise e corrija o erro automaticamente? (y/N): ${NC}"
+                        read -p "" auto_fix
+                        if [[ "${auto_fix,,}" != "y" ]]; then
+                            echo -e "${YELLOW}⛔ Auto-correção cancelada pelo usuário.${NC}"
+                            break
+                        fi
+                        if ! diagnose_error "$SCRIPT_CONTENT" "$exec_output" "$attempt"; then
+                            echo -e "${RED}Falha no diagnóstico. Encerrando.${NC}"
+                            break
+                        fi
+                        echo -e "\n${CYAN}Script corrigido pelo modelo:${NC}"
+                        cat "$TEMP_SCRIPT"
+                        read -p $'\n✅ Executar versão corrigida? (y/N): ' retry_confirm
+                        if [[ "${retry_confirm,,}" != "y" ]]; then
+                            echo -e "${YELLOW}⛔ Execução cancelada.${NC}"
+                            break
+                        fi
+                        SCRIPT_CONTENT=$(cat "$TEMP_SCRIPT")
+                    else
+                        echo -e "${RED}❌ Limite de ${MAX_RETRY} tentativas atingido.${NC}"
+                        echo -e "${YELLOW}Use 'diag' para análise manual ou edite com nano.${NC}"
+                    fi
+                fi
+                ((attempt++))
+            done
+            if [[ "$success" == "false" ]]; then
+                echo -e "\n${YELLOW}⛔ Script não executado com sucesso. Salvo em $TEMP_SCRIPT${NC}"
+            fi
+        else
+            echo -e "${YELLOW}⛔ Cancelado. Script salvo em $TEMP_SCRIPT${NC}"
+        fi
+    fi
+    echo -e "\n"
+done

@@ -1,0 +1,321 @@
+============================================================
+DIAGNÓSTICO OLLAMA — INTERNO AO CONTAINER
+Data: Tue Aug 25 02:15:30 PM -03 2026
+============================================================
+
+#################### OLLAMA LIST ####################
+NAME                               ID              SIZE      MODIFIED     
+command-r:latest                   7d96360d357f    18 GB     5 weeks ago     
+mistral-nemo-otimizado:latest      e2f053d4968a    7.1 GB    5 weeks ago     
+qwen-dev-pro:latest                d34c72d2933e    15 GB     8 weeks ago     
+mistral-nemo:latest                e7e06d107c6c    7.1 GB    2 months ago    
+qwen2.5-coder:14b-instruct-q8_0    bd9a836c38a9    15 GB     2 months ago    
+
+#################### OLLAMA PS ####################
+NAME                ID              SIZE     PROCESSOR    CONTEXT    UNTIL   
+command-r:latest    7d96360d357f    19 GB    100% CPU     4096       Forever    
+
+#################### QWEN DEV PRO ####################
+  Model
+    architecture        qwen2    
+    parameters          14.8B    
+    context length      32768    
+    embedding length    5120     
+    quantization        Q8_0     
+
+  Capabilities
+    completion    
+    tools         
+    insert        
+
+  Parameters
+    num_ctx           4096    
+    repeat_penalty    1.15    
+    temperature       0.15    
+    top_p             0.95    
+
+  System
+    Qwen-Dev-Pro: Especialista sênior em Python/Go/Linux/Docker/DB. Hardware: Ryzen 5600X (6c), 31GB        
+      RAM.                                                                                                    
+    REGRAS:                                                                                                 
+    ...                                                                                                     
+
+  License
+    Apache License               
+    Version 2.0, January 2004    
+    ...                          
+
+
+#################### QWEN CODER ####################
+  Model
+    architecture        qwen2    
+    parameters          14.8B    
+    context length      32768    
+    embedding length    5120     
+    quantization        Q8_0     
+
+  Capabilities
+    completion    
+    tools         
+    insert        
+
+  System
+    You are Qwen, created by Alibaba Cloud. You are a helpful assistant.    
+
+  License
+    Apache License               
+    Version 2.0, January 2004    
+    ...                          
+
+
+#################### MISTRAL ####################
+mistral-nemo-otimizado:latest      e2f053d4968a    7.1 GB    5 weeks ago     
+mistral-nemo:latest                e7e06d107c6c    7.1 GB    2 months ago    
+
+#################### CONTAINER INSPECT ####################
+[
+    {
+        "Id": "6a8f7816f7c8873f5951d9929b9d38b01323f7825f2996f6856e22acf01711ff",
+        "Created": "2026-08-25T10:58:34.643514254Z",
+        "Path": "/bin/ollama",
+        "Args": [
+            "serve"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 17025,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-08-25T10:58:34.664634312Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:cb27efcf587ff84e60e59480858485b7d5066b2358ffa132a11391cdf73e8e70",
+        "ResolvConfPath": "/workspace/docker-engine/containers/6a8f7816f7c8873f5951d9929b9d38b01323f7825f2996f6856e22acf01711ff/resolv.conf",
+        "HostnamePath": "/workspace/docker-engine/containers/6a8f7816f7c8873f5951d9929b9d38b01323f7825f2996f6856e22acf01711ff/hostname",
+        "HostsPath": "/workspace/docker-engine/containers/6a8f7816f7c8873f5951d9929b9d38b01323f7825f2996f6856e22acf01711ff/hosts",
+        "LogPath": "/workspace/docker-engine/containers/6a8f7816f7c8873f5951d9929b9d38b01323f7825f2996f6856e22acf01711ff/6a8f7816f7c8873f5951d9929b9d38b01323f7825f2996f6856e22acf01711ff-json.log",
+        "Name": "/ollama-service",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/home/carlos/Projetos/AI/ollama-models:/root/.ollama"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "bridge",
+            "PortBindings": {
+                "11434/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "11434"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "always",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                24,
+                157
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 300,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 21474836480,
+            "NanoCpus": 6000000000,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 17179869184,
+            "MemorySwap": 25769803776,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": 256,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "6a8f7816f7c8873f5951d9929b9d38b01323f7825f2996f6856e22acf01711ff",
+                "LowerDir": "/workspace/docker-engine/overlay2/50054a47a25066bc9cc722b7c9acdbd9cad6f41b54c256f57a6f6a9d06ef73a9-init/diff:/workspace/docker-engine/overlay2/2b37456a85333cb2a40c4991ea01ed8a2dff2b97e57ccc9c461fa438eb9fdef0/diff:/workspace/docker-engine/overlay2/407f4296321994c220bf1134846f99101fd67a470a970507c399728910217412/diff:/workspace/docker-engine/overlay2/f437fb5e02585943ae5023f0261be06aa8579bf3757f3e8fcb627c884b999dfc/diff:/workspace/docker-engine/overlay2/3c4cd315c63157aa7cd14f12b5f8fb1cb0ad9064b228fc636ef3ee6ca577c878/diff",
+                "MergedDir": "/workspace/docker-engine/overlay2/50054a47a25066bc9cc722b7c9acdbd9cad6f41b54c256f57a6f6a9d06ef73a9/merged",
+                "UpperDir": "/workspace/docker-engine/overlay2/50054a47a25066bc9cc722b7c9acdbd9cad6f41b54c256f57a6f6a9d06ef73a9/diff",
+                "WorkDir": "/workspace/docker-engine/overlay2/50054a47a25066bc9cc722b7c9acdbd9cad6f41b54c256f57a6f6a9d06ef73a9/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/home/carlos/Projetos/AI/ollama-models",
+                "Destination": "/root/.ollama",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "6a8f7816f7c8",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "11434/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "OLLAMA_FLASH_ATTENTION=1",
+                "OLLAMA_KV_CACHE_TYPE=q8_0",
+                "OLLAMA_LOW_VRAM=1",
+                "OLLAMA_DEBUG=1",
+                "ROCR_VISIBLE_DEVICES=",
+                "OLLAMA_MAX_LOADED_MODELS=1",
+                "OLLAMA_NUM_CTX=4096",
+                "OLLAMA_KEEP_ALIVE=-1",
+                "CUDA_VISIBLE_DEVICES=",
+                "OLLAMA_GPU_LAYERS=0",
+                "OLLAMA_NUM_THREADS=6",
+                "OLLAMA_NUM_PARALLEL=1",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64",
+                "NVIDIA_DRIVER_CAPABILITIES=compute,utility",
+                "NVIDIA_VISIBLE_DEVICES=all",
+                "OLLAMA_HOST=0.0.0.0:11434"
+            ],
+            "Cmd": [
+                "serve"
+            ],
+            "Image": "ollama/ollama:latest",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": [
+                "/bin/ollama"
+            ],
+            "Labels": {
+                "org.opencontainers.image.ref.name": "ubuntu",
+                "org.opencontainers.image.version": "24.04"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "3f76edb5a9512cf04edb42f752cd344fbbb048137ae47b3d8337e70fae72e827",
+            "SandboxKey": "/var/run/docker/netns/3f76edb5a951",
+            "Ports": {
+                "11434/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "11434"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "11434"
+                    }
+                ]
+            },
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "ff26d60c6be4af2c54f27679cf78c1af37dd9f98982e8c54b798d0fe852e9918",
+                    "EndpointID": "e1654eb2034faf84d99394608c822064a13015ff89857b1df988fc487d01fd3a",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.2",
+                    "MacAddress": "1a:c9:36:cf:0f:fe",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        }
+    }
+]
+
+#################### VOLUMES ####################
+[{"Type":"bind","Source":"/home/carlos/Projetos/AI/ollama-models","Destination":"/root/.ollama","Mode":"","RW":true,"Propagation":"rprivate"}]
+
+============================================================
+FIM DO DIAGNÓSTICO OLLAMA
+============================================================

@@ -1,0 +1,42 @@
+============================================================
+DIAGNÓSTICO — AI LOCAL LAB
+Data: Tue Aug 25 02:10:19 PM -03 2026
+Host: carlos
+============================================================
+
+#################### OLLAMA LIST ####################
+Command 'ollama' not found, but can be installed with:
+sudo snap install ollama
+
+#################### OLLAMA PS ####################
+Command 'ollama' not found, but can be installed with:
+sudo snap install ollama
+
+#################### QWEN DEV PRO ####################
+Command 'ollama' not found, but can be installed with:
+sudo snap install ollama
+
+#################### QWEN CODER ####################
+Command 'ollama' not found, but can be installed with:
+sudo snap install ollama
+
+#################### MISTRAL ####################
+Command 'ollama' not found, but can be installed with:
+sudo snap install ollama
+Nenhum modelo Mistral encontrado.
+
+#################### DOCKER PS -A ####################
+CONTAINER ID   IMAGE                                COMMAND               CREATED       STATUS                 PORTS                                             NAMES
+d6f987b39726   ghcr.io/open-webui/open-webui:main   "bash start.sh"       6 hours ago   Up 6 hours (healthy)   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp       open-webui-gui
+6a8f7816f7c8   ollama/ollama:latest                 "/bin/ollama serve"   6 hours ago   Up 6 hours             0.0.0.0:11434->11434/tcp, [::]:11434->11434/tcp   ollama-service
+
+#################### DOCKER SYSTEM DF ####################
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          15        2         12.69GB   10.69GB (84%)
+Containers      2         2         43.55MB   0B (0%)
+Local Volumes   11        0         39.68GB   39.68GB (100%)
+Build Cache     60        0         1.778GB   954.7kB
+
+============================================================
+FIM DO DIAGNÓSTICO
+============================================================

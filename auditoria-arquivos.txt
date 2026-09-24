@@ -1,0 +1,207 @@
+=== SCRIPTS DO PROJETO ===
+#!/bin/bash
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo -e "${CYAN}🚀 Iniciando Ambiente IA no NVMe Gigante (/workspace)...${NC}"
+
+# 1. Tenta subir os containers se já existirem, senão cria-os
+if docker start ollama-service open-webui-gui 2>/dev/null; then
+    echo -e "${GREEN}📦 Containers iniciados com sucesso!${NC}"
+else
+    echo -e "${YELLOW}📦 Criando novos containers no /workspace...${NC}"
+    docker run -d \
+      --name ollama-service \
+      --restart always \
+      -v /workspace/ollama-models:/root/.ollama \
+      -p 11434:11434 \
+      ollama/ollama:latest
+
+    docker run -d \
+      -p 8080:8080 \
+      --add-host=host.docker.internal:host-gateway \
+      -v "/workspace/AI-data/open-webui:/app/backend/data" \
+      --name open-webui-gui \
+      --restart always \
+      ghcr.io/open-webui/open-webui:main
+fi
+
+# 2. Aguarda o serviço do Ollama estar pronto para receber comandos
+echo -ne "${YELLOW}⏳ Aguardando API do Ollama... ${NC}"
+while ! docker exec ollama-service ollama list > /dev/null 2>&1; do
+    echo -ne "."
+    sleep 1
+done
+echo -e "${GREEN} OK!${NC}"
+
+# 3. AQUECIMENTO E SAUDAÇÃO (Carrega o Mistral na RAM)
+echo -e "${CYAN}🧠 Aquecendo o Mistral NeMo (7.1 GB)...${NC}"
+SAUDACAO=$(docker exec ollama-service ollama run mistral-nemo "Responda apenas: 'Aguardando instruções, Carlos! Sistema pronto no NVMe.'")
+
+echo -e "\n${GREEN}▶ $SAUDACAO${NC}"
+
+# Alias temporário para a sessão
+alias ollama='docker exec -it ollama-service ollama'
+
+echo -e "${GREEN}✅ Tudo pronto para o trabalho!${NC}"
+#!/bin/bash
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo -e "${CYAN}⏹️  Encerrando Laboratório de IA...${NC}"
+
+# 1. Descarrega os modelos da RAM (Keep-alive 0)
+echo -e "${YELLOW}🧠 Descarregando Mistral e Command-R da RAM...${NC}"
+docker exec ollama-service ollama stop mistral-nemo 2>/dev/null
+docker exec ollama-service ollama stop command-r 2>/dev/null
+
+# 2. Para os containers
+echo -e "${YELLOW}📦 Parando containers...${NC}"
+docker stop open-webui-gui ollama-service > /dev/null 2>&1
+
+# 3. Sincronização e Limpeza de Cache (Crucial para 32GB RAM)
+echo -e "${CYAN}🧹 Sincronizando NVMe e liberando memória...${NC}"
+sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null
+
+# 4. Verificação final
+MEM_FREE=$(free -h | grep Mem | awk '{print $4}')
+echo -e "${GREEN}✅ Sucesso! Memória RAM disponível: $MEM_FREE${NC}"
+echo -e "${GREEN}🚀 Hardware liberado, Carlos!${NC}"
+#!/bin/bash
+
+# Cores
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo -e "${CYAN}==================================================${NC}"
+echo -e "${CYAN}         📊 STATUS DO ECOSSISTEMA IA (NVMe)       ${NC}"
+echo -e "${CYAN}==================================================${NC}"
+
+# 1. Modelo Ativo
+echo -e "\n${YELLOW}🧠 [MODELO EM EXECUÇÃO]${NC}"
+# Filtra a saída do ps para pegar Nome e Tamanho
+MODELO_ATIVO=$(docker exec ollama-service ollama ps 2>/dev/null | grep -v "NAME" | awk '{print $1 " (" $3 ")"}')
+
+if [ -n "$MODELO_ATIVO" ]; then
+    echo -e "${GREEN}▶ $MODELO_ATIVO${NC}"
+else
+    # Se não houver modelo fixo na RAM, mostra o uso atual de CPU do container
+    CPU_USAGE=$(docker stats --no-stream ollama-service --format "{{.CPUPerc}}")
+    echo -e "${RED}💤 Standby (Ollama CPU: $CPU_USAGE)${NC}"
+fi
+
+# 2. Containers
+echo -e "\n${YELLOW}📦 [CONTAINERS]${NC}"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "Names|open-webui|ollama"
+
+# 3. Armazenamento
+echo -e "\n${YELLOW}💾 [ARMAZENAMENTO - NVMe /WORKSPACE]${NC}"
+CAMINHO_LOCAL="/workspace/AI-data/open-webui"
+if [ -d "$CAMINHO_LOCAL" ]; then
+    TAMANHO_PASTA=$(du -sh "$CAMINHO_LOCAL" | cut -f1)
+    TAMANHO_DB=$(du -sh "$CAMINHO_LOCAL/webui.db" 2>/dev/null | cut -f1)
+    echo -e "${GREEN}✅ Pasta de Dados: ${YELLOW}$TAMANHO_PASTA${NC}"
+    echo -e "${GREEN}✅ Base de Dados (webui.db): ${YELLOW}${TAMANHO_DB:-0}${NC}"
+fi
+
+# 4. Memória RAM
+echo -e "\n${YELLOW}🧠 [MEMÓRIA RAM]${NC}"
+(
+  echo "DESCRIÇÃO TOTAL USADA LIVRE CACHE DISPONÍVEL"
+  free -h | grep "Mem:" | awk '{print "Memória-Física " $2 " " $3 " " $4 " " $6 " " $7}'
+  free -h | grep "Swap:" | awk '{print "Swap-Disco " $2 " " $3 " " $4 " - -"}'
+) | column -t
+
+echo -e "\n${CYAN}==================================================${NC}"
+
+=== CONFIG OLLAMA (container) ===
+
+=== MODELOS INSTALADOS ===
+NAME                   ID              SIZE      MODIFIED    
+mistral-nemo:latest    e7e06d107c6c    7.1 GB    7 weeks ago    
+command-r:latest       7d96360d357f    18 GB     8 weeks ago    
+
+=== MODELOS EM EXECUÇÃO ===
+NAME    ID    SIZE    PROCESSOR    CONTEXT    UNTIL 
+
+=== ENV OLLAMA ===
+["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64","NVIDIA_DRIVER_CAPABILITIES=compute,utility","NVIDIA_VISIBLE_DEVICES=all","OLLAMA_HOST=0.0.0.0:11434"]
+
+=== ENV OPEN-WEBUI ===
+["PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","LANG=C.UTF-8","GPG_KEY=A035C8C19219BA821ECEA86B64E628F8D684696D","PYTHON_VERSION=3.11.14","PYTHON_SHA256=8d3ed8ec5c88c1c95f5e558612a725450d2452813ddad5e58fdb1a53b1209b78","PYTHONUNBUFFERED=1","ENV=prod","PORT=8080","USE_OLLAMA_DOCKER=false","USE_CUDA_DOCKER=false","USE_SLIM_DOCKER=false","USE_CUDA_DOCKER_VER=cu128","USE_EMBEDDING_MODEL_DOCKER=sentence-transformers/all-MiniLM-L6-v2","USE_RERANKING_MODEL_DOCKER=","USE_AUXILIARY_EMBEDDING_MODEL_DOCKER=TaylorAI/bge-micro-v2","OLLAMA_BASE_URL=/ollama","OPENAI_API_BASE_URL=","OPENAI_API_KEY=","WEBUI_SECRET_KEY=","SCARF_NO_ANALYTICS=true","DO_NOT_TRACK=true","ANONYMIZED_TELEMETRY=false","WHISPER_MODEL=base","WHISPER_MODEL_DIR=/app/backend/data/cache/whisper/models","RAG_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2","RAG_RERANKING_MODEL=","AUXILIARY_EMBEDDING_MODEL=TaylorAI/bge-micro-v2","SENTENCE_TRANSFORMERS_HOME=/app/backend/data/cache/embedding/models","TIKTOKEN_ENCODING_NAME=cl100k_base","TIKTOKEN_CACHE_DIR=/app/backend/data/cache/tiktoken","HF_HOME=/app/backend/data/cache/embedding/models","HOME=/root","WEBUI_BUILD_VERSION=b8112d72b95e480f946f0688bed29321b61e65af","DOCKER=true"]
+
+=== VOLUMES MONTADOS ===
+[{"Type":"bind","Source":"/workspace/ollama-models","Destination":"/root/.ollama","Mode":"","RW":true,"Propagation":"rprivate"}]
+[{"Type":"bind","Source":"/workspace/AI-data/open-webui","Destination":"/app/backend/data","Mode":"","RW":true,"Propagation":"rprivate"}]
+
+=== HARDWARE ===
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           48 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  12
+On-line CPU(s) list:                     0-11
+Vendor ID:                               AuthenticAMD
+Model name:                              AMD Ryzen 5 5600X 6-Core Processor
+CPU family:                              25
+Model:                                   33
+Thread(s) per core:                      2
+Core(s) per socket:                      6
+Socket(s):                               1
+Stepping:                                0
+Frequency boost:                         enabled
+CPU(s) scaling MHz:                      95%
+CPU max MHz:                             4654.2881
+CPU min MHz:                             560.7580
+BogoMIPS:                                7386.18
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk clzero irperf xsaveerptr rdpru wbnoinvd arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip pku ospke vaes vpclmulqdq rdpid overflow_recov succor smca fsrm debug_swap
+Virtualization:                          AMD-V
+L1d cache:                               192 KiB (6 instances)
+L1i cache:                               192 KiB (6 instances)
+L2 cache:                                3 MiB (6 instances)
+L3 cache:                                32 MiB (1 instance)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-11
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Ghostwrite:                Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             Not affected
+Vulnerability L1tf:                      Not affected
+Vulnerability Mds:                       Not affected
+Vulnerability Meltdown:                  Not affected
+Vulnerability Mmio stale data:           Not affected
+Vulnerability Old microcode:             Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Not affected
+Vulnerability Spec rstack overflow:      Mitigation; Safe RET
+Vulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; Retpolines; IBPB conditional; IBRS_FW; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Vulnerable: No microcode
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Mitigation; IBPB before exit to userspace
+               total        used        free      shared  buff/cache   available
+Mem:            31Gi        12Gi       258Mi        49Mi        19Gi        19Gi
+Swap:           30Gi       4.0Ki        30Gi
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p1   73G   16G   54G  23% /
+/dev/nvme0n1p3   92G  9.1G   78G  11% /home
+/dev/nvme0n1p5  283G  168G  115G  60% /workspace
+
+=== DOCKER STATS ===
+CONTAINER ID   NAME                  CPU %     MEM USAGE / LIMIT     MEM %     NET I/O           BLOCK I/O        PIDS
+00e465f309a7   cadastro-vagas-db-1   0.00%     27.64MiB / 31.29GiB   0.09%     19.1kB / 126B     24.8MB / 122kB   6
+1b08af2aebe0   ollama-service        0.00%     109MiB / 31.29GiB     0.34%     38.5kB / 542B     7.11GB / 0B      18
+486a5a10c44d   open-webui-gui        0.06%     673MiB / 31.29GiB     2.10%     29.8kB / 2.75kB   570MB / 200kB    43
+
+=== GPU ===
+05:00.0 VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI] Lexa PRO [Radeon 540/540X/550/550X / RX 540X/550/550X] (rev c7)

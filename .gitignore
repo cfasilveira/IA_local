@@ -1,0 +1,39 @@
+# Modelos e dados volumosos (22G+)
+ollama-models/
+AI-data/
+*.blob
+*.bin
+*.gguf
+
+# Python
+mini-api/venv/
+mini-api/__pycache__/
+**/__pycache__/
+**/*.pyc
+.uv/
+
+# Logs e métricas operacionais (dados, não código)
+*.log
+metrics.jsonl
+metrics.log
+.metrics_baseline.json
+gatekeeper.log
+tui_*.log
+setup_*.log
+shutdown_*.log
+fix_ollama_nativo_*.log
+logs_archive_*.tar.gz
+
+# Backups e docs binários locais
+backup_sanitizacao_*/
+*.docx
+.~lock.*#
+*.bak*
+*.antes
+
+# OS / editor
+.DS_Store
+*.swp
+*~
+.vscode/
+.idea/

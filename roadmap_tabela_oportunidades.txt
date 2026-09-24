@@ -1,0 +1,34 @@
+Tabela de oportunidades — atualizada
+Camada no perfil T-shaped	Status atual	Facilidade de entrada	Faixa salarial (anual, USD aprox.)	Aderência
+BI Analyst / Supply Chain Analytics (haste vertical)	✅ Comprovada — currículo já sustenta	Alta	US$ 75k–130k	Muito alta
+Process Automation / RPA + IA Specialist (camada 1)	✅ Comprovada — scripts reais (gatekeeper, CLI, TUI)	Alta	US$ 70k–120k; €50–70k Europa	Muito alta
+Solutions Architect / Pré-vendas técnico (camada 2)	🔶 Em construção — Fase 2 fecha a prova	Média-alta	US$ 100k–170k	Alta
+On-Premise / Sovereign AI Engineer (camada 3)	🔶 Em construção — Fase 3	Média	US$ 90k–180k; setores regulados pagam prêmio	Alta
+AI Agent / LLMOps Automation Engineer (camada 3)	🔶 Em construção — Fase 1–2	Média	US$ 90k–180k; sênior brasileiro remoto costuma passar de US$ 120k	Alta
+
+Como usar isso na prática: as duas primeiras linhas (✅) são as que você já pode usar como palavra-chave em candidaturas hoje — são a prova que sustenta o título único. As três seguintes (🔶) entram na sua narrativa de portfólio e LinkedIn desde já, mas só viram palavra-chave de candidatura formal conforme cada Fase do roadmap entrega o artefato que as comprova.
+
+Roadmap refeito
+Fase 0 — Agora (semanas 1–4): publicar a haste vertical e a primeira camada
+
+Estudo: módulos 9, 10 e 17 do Senai.
+Projeto: publicar ia_gatekeeper.sh, qwen-dev-cli.sh, ollama-tui.sh no GitHub com README em inglês + 1 artigo sobre o CLI autocorretivo.
+Posicionamento: já defina o título único no LinkedIn — "Applied AI & Automation Architect — Business Process & Data Sovereignty" — mesmo com as camadas ainda incompletas. É a identidade que amarra tudo; o currículo por vaga continua específico.
+Situação paralela: Visio Agro aguardando resposta do Monashees/Google, não bloqueia nada.
+
+Fase 1 — Meses 1–3: consolidar a segunda camada (Automação)
+
+Estudo: ottomator-agents/python-local-ai-agent, local-ai-packaged, scikit-learn-book.
+Projeto: portar para Python as fases 1–3 e parte da 9–12 da AI Factory.
+Marco de saída: 2 repositórios reais + 2 artigos. Nesse ponto, "Process Automation/RPA" deixa de ser conceito e vira camada comprovada.
+
+Fase 2 — Meses 3–6: construir a terceira camada (Arquitetura)
+
+Estudo: browser-use, bats, shellcheck.
+Certificação: Microsoft AI-900 ou SC-900.
+Projeto: conectar um caso de negócio real (Port Health ou RAG de manutenção) ao motor da Factory — é esse artefato que transforma "Solutions Architect" de discurso em prova.
+
+Fase 3 — Meses 6–12: quarta e quinta camadas (IA soberana/local + escala internacional)
+
+Estudo: dimensionamento de hardware/GPU, quantização, governança LGPD/GDPR aplicada a IA — não cloud generalista.
+Movimento de carreira: com pelo menos 3 camadas comprovadas (BI, Automation, Architecture), esse é o ponto de abrir candidaturas formais fora do Brasil e considerar visto individual (Chancenkarte).

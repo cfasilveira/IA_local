@@ -1,0 +1,193 @@
+# Resumo do Projeto — AI Factory
+
+## 🎯 Objetivo Central
+
+Construir um **sistema local de engenharia de software assistida por IA** que transforma uma ideia humana em um projeto funcional, passando por especificação, arquitetura, código, testes e correções — **com supervisão humana nos momentos críticos**.
+
+> **Princípio fundamental:** A IA propõe. A Factory controla. O teste valida. O humano decide.
+
+---
+
+## 🧠 O Que a Factory É (e o Que Não É)
+
+| ✅ É | ❌ Não É |
+|------|----------|
+| Orquestrador de desenvolvimento | Agente autônomo irrestrito |
+| Sistema com Zero Trust na LLM | IA que programa sozinha |
+| Plataforma com auditoria completa | "Caixa preta" que gera código |
+| Ferramenta com Human Gate | Sistema que toma decisões sozinho |
+| Memória de decisões e erros | Chat que esquece o contexto |
+
+---
+
+## 🏗️ Arquitetura Conceitual
+
+```
+IDEIA HUMANA
+     ↓
+DIALOGUE LLM ← (faz perguntas, identifica lacunas)
+     ↓
+ESPECIFICAÇÃO ← (validada pelo humano)
+     ↓
+PLANNER ← (gera task graph)
+     ↓
+PLAN VALIDATOR ← (verifica consistência)
+     ↓
+ORCHESTRATOR ← (controla fluxo e estados)
+     ↓
+MODEL MANAGER ← (seleciona modelo por tarefa)
+     ↓
+AGENTE (Qwen/Mistral) ← (executa via ferramentas controladas)
+     ↓
+TESTER ← (pytest, ruff, mypy)
+     ↓
+┌──────────┴──────────┐
+│                     │
+PASS                 FAIL
+│                     │
+↓                     ↓
+COMMIT              ORCHESTRATOR
+│                     ↓
+↓                  DIAGNÓSTICO
+NEXT TASK              ↓
+                   HUMANO (aprova correção)
+                       ↓
+                   CORREÇÃO → TESTE
+```
+
+---
+
+## 🔐 Princípios de Segurança
+
+### Zero Trust para LLM
+> *"A palavra da IA não valida o trabalho da IA."*
+
+Toda saída é classificada como:
+- **VERIFIED**: Existe evidência (teste passou)
+- **UNVERIFIED**: Afirmação sem validação
+- **UNKNOWN**: Informação insuficiente
+
+**Regra:** UNVERIFIED/UNKNOWN **nunca** viram FACT/DECISION/ACTION sem aprovação.
+
+### Falha Não É Autorização
+> *"Uma falha interrompe a execução. Uma nova tentativa só ocorre após autorização explícita."*
+
+### Três Níveis de Risco
+- **Baixo** (criar arquivo, rodar teste) → Automático
+- **Médio** (adicionar dependência, alterar DB) → Registro/Confirmação
+- **Alto** (apagar dados, git push, deploy) → Aprovação obrigatória
+
+---
+
+## 📦 Componentes Principais
+
+| Componente | Função |
+|------------|--------|
+| **Dialogue LLM** | Transforma ideia informal em requisitos |
+| **Planner** | Requisitos → Task Graph |
+| **Plan Validator** | Verifica consistência do plano |
+| **Orchestrator** | Controla estados e fluxo |
+| **Model Manager** | Seleciona e gerencia modelos |
+| **Agent Runner** | Executa tarefas via ferramentas |
+| **Tester** | Validação determinística |
+| **Failure Engine** | FAIL → BLOCK → ANALYZE → HUMAN → APPROVE → RETRY |
+| **Audit** | Registra decisões, erros, evidências |
+
+---
+
+## 📁 Estrutura de Estado
+
+```
+.factory/
+├── project.yaml         # Metadados do projeto
+├── requirements.yaml    # Requisitos
+├── architecture.yaml    # Arquitetura
+├── decisions.yaml       # Decisões tomadas
+├── state.yaml           # Estado atual
+├── errors/              # Registro de erros
+├── evaluations/         # Avaliações
+└── lessons/             # Lições aprendidas
+```
+
+---
+
+## 🤖 Modelos Disponíveis (Seu Setup)
+
+| Modelo | Tamanho | Uso |
+|--------|---------|-----|
+| **Mistral-Nemo-Otimizado** | 7.1 GB | Uso diário (rápido, 1M contexto) |
+| **Qwen-Dev-Pro** | 15 GB | Código/Engenharia (Q8_0) |
+| **Command-R** | 19 GB | Documentos longos (131K contexto) |
+| **GLM-5.2 + Colibri** | ~370 GB disco | Raciocínio profundo (lento, especial) |
+
+---
+
+## 🗺️ Roadmap de Implementação
+
+| Fase | Nome | Objetivo |
+|------|------|----------|
+| **0** | Regras | Definir segurança, estados, permissões |
+| **1** | Skeleton | Estrutura Python da Factory |
+| **2** | State Engine | Máquina de estados |
+| **3** | Project Manager | Criar projetos e `.factory/` |
+| **4** | Dialogue LLM | Brief → perguntas → especificação |
+| **5** | Human Gate | Aprovação da especificação |
+| **6** | Planner | Especificação → Task Graph |
+| **7** | Plan Validator | Validar plano |
+| **8** | Tool Layer | Ferramentas controladas |
+| **9** | Agent Runner | Conectar Qwen via Ollama |
+| **10** | Test Engine | Testes determinísticos |
+| **11** | Validation Gate | Impedir avanço sem PASS |
+| **12** | Failure Engine | FAIL → BLOCK → HUMAN → RETRY |
+| **13** | Audit | Decisões, erros, evidências |
+| **14** | Git | Versionamento controlado |
+| **15** | Primeiro Projeto | Projeto pequeno e real |
+| **16** | Teste de Sabotagem | Quebrar coisas deliberadamente |
+
+**Depois:** V0.2 → Model Manager | V0.3 → Resource Manager | V0.4 → Múltiplos modelos | V0.5 → Agentes especializados | V0.6 → Docker sandbox | V0.7 → Colibri/memória avançada
+
+---
+
+## ⚠️ O Que a Factory NÃO Faz
+
+- ❌ Não é IA autônoma irrestrita
+- ❌ Não modifica o SO livremente (sem `sudo`, `apt`, `rm -rf`)
+- ❌ Não executa código sem controle
+- ❌ Não toma decisões importantes silenciosamente
+- ❌ Não constrói projeto inteiro de uma vez
+- ❌ Não depende da memória da conversa (estado está no projeto)
+- ❌ Não usa LLM para tarefas determinísticas (hash, JSON, parsing)
+- ❌ Não esconde erros (erro é informação)
+
+---
+
+## 🎓 Recursos Complementares Identificados
+
+| Recurso | Aplicação na Factory |
+|---------|---------------------|
+| **Colibri** | Motor C para rodar modelos MoE gigantes via streaming de especialistas do disco |
+| **Unsloth** | Fine-tuning com QLoRA (4-bit) para criar modelos especializados |
+| **Aider** | Base para Tool Layer (edição de código controlada) |
+| **Ollama** | Backend de inferência |
+
+---
+
+## 📜 As Duas Regras de Ouro
+
+> **1. A IA pode propor. A Factory pode executar. O teste pode validar. Mas decisões de alto impacto permanecem sob controle humano.**
+
+> **2. Toda decisão importante deve deixar uma trilha que permita entender, meses depois, por que o sistema chegou àquele resultado.**
+
+---
+
+## 🎯 Métrica de Sucesso
+
+A Factory não é medida por "funcionar", mas por:
+- **É usada regularmente?**
+- **Reduz o tempo de desenvolvimento?**
+- **Reduz erros?**
+- **É confiável o suficiente para ser delegada?**
+
+---
+
+**Em uma frase:** A Factory é uma **plataforma local de engenharia assistida por IA**, com memória, testes, controle de recursos e supervisão humana — projetada para ser **segura, auditável e incremental**, começando pequena e evoluindo com base em evidências reais de uso.
