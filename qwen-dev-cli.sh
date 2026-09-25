@@ -512,8 +512,8 @@ while true; do
         TEST_PROMPT="${TEST_PROMPT%$'\n'}"
         [[ -n "$TEST_PROMPT" ]] && debug_payload "$TEST_PROMPT" || echo -e "${YELLOW}Vazio.${NC}"
         continue
-    elif [[ "${USER_PROMPT,,}" == projeto* ]]; then cmd_projeto ${USER_PROMPT#*[pP]rojeto }; continue
-    elif [[ "${USER_PROMPT,,}" == ctx* ]]; then cmd_ctx ${USER_PROMPT#*[cC]tx }; continue
+    elif [[ "${USER_PROMPT,,}" == projeto* ]]; then read -ra _args <<< "${USER_PROMPT#*[pP]rojeto }"; cmd_projeto "${_args[@]}"; continue
+    elif [[ "${USER_PROMPT,,}" == ctx* ]]; then read -ra _args <<< "${USER_PROMPT#*[cC]tx }"; cmd_ctx "${_args[@]}"; continue
     elif [[ "${USER_PROMPT,,}" == "diag" || "${USER_PROMPT,,}" == "diagnostico" ]]; then
         if [[ -f "$ERROR_LOG" ]]; then
             cat "$ERROR_LOG"

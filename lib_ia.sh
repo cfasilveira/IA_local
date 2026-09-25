@@ -305,6 +305,62 @@ log_success() {
 }
 
 # ============================================================================
+# REGISTRO CANONICO DE MODELOS (fonte unica)
+# ============================================================================
+# Chaves curtas usadas em todos os scripts: mistral-otimizado, mistral-base,
+# qwen-coder, qwen-base. Tabelas locais em setup_ia.sh / ia_gatekeeper.sh /
+# chat_IA.sh / status_ia.sh sao fallbacks quando esta lib nao e sourceada.
+# Campos: TAG | SIZE_GB | MIN_RAM_GB | REC_RAM_GB | DESC | BASE_TAG
+
+declare -A IA_MODEL_TAG=(
+    ["mistral-otimizado"]="mistral-nemo-otimizado:latest"
+    ["mistral-base"]="mistral-nemo:latest"
+    ["qwen-coder"]="qwen2.5-coder:14b-instruct-q8_0"
+    ["qwen-base"]="qwen-dev-pro:latest"
+)
+
+declare -A IA_MODEL_SIZE_GB=(
+    ["mistral-otimizado"]="7.1"
+    ["mistral-base"]="7.1"
+    ["qwen-coder"]="15"
+    ["qwen-base"]="15"
+)
+
+declare -A IA_MODEL_MIN_RAM=(
+    ["mistral-otimizado"]="10"
+    ["mistral-base"]="8"
+    ["qwen-coder"]="16"
+    ["qwen-base"]="16"
+)
+
+declare -A IA_MODEL_REC_RAM=(
+    ["mistral-otimizado"]="12"
+    ["mistral-base"]="10"
+    ["qwen-coder"]="20"
+    ["qwen-base"]="20"
+)
+
+# tag ollama -> chave curta (para gatekeeper/chat que recebem a tag)
+ia_model_key_for_tag() {
+    local tag="$1" k
+    for k in "${!IA_MODEL_TAG[@]}"; do
+        [[ "${IA_MODEL_TAG[$k]}" == "$tag" ]] && { echo "$k"; return 0; }
+    done
+    # aceita prefixo sem :latest
+    for k in "${!IA_MODEL_TAG[@]}"; do
+        [[ "${IA_MODEL_TAG[$k]}" == "$tag:latest" || "$tag" == "${IA_MODEL_TAG[$k]}" ]] && { echo "$k"; return 0; }
+    done
+    return 1
+}
+
+ia_model_tag()     { local k="$1"; echo "${IA_MODEL_TAG[$k]:-}"; }
+ia_model_size()    { local k="$1"; echo "${IA_MODEL_SIZE_GB[$k]:-0}"; }
+ia_model_min_ram() { local k="$1"; echo "${IA_MODEL_MIN_RAM[$k]:-16}"; }
+ia_model_rec_ram() { local k="$1"; echo "${IA_MODEL_REC_RAM[$k]:-16}"; }
+
+ia_list_model_keys() { printf '%s\n' "${!IA_MODEL_TAG[@]}" | sort; }
+
+# ============================================================================
 # FUNÇÕES DE UTILIDADE
 # ============================================================================
 

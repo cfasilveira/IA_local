@@ -143,6 +143,25 @@ declare -A MODEL_SPECS=(
     ["none"]="Nenhum|none|0|0|0|-|-"
 )
 
+# Fonte unica: se lib_ia.sh estiver presente, os numeros (tag/size/min/rec)
+# vêm do registro canonico; nomes/descrições permanecem locais (fallback
+# embutido acima garante standalone).
+if [[ -f "${BASE_DIR}/lib_ia.sh" ]]; then
+    # shellcheck source=lib_ia.sh
+    source "${BASE_DIR}/lib_ia.sh"
+    if declare -f ia_model_tag >/dev/null 2>&1; then
+        for _k in mistral-otimizado mistral-base qwen-coder qwen-base; do
+            IFS='|' read -r _name _tag _w _min _rec _desc _base <<< "${MODEL_SPECS[$_k]}"
+            _tag="$(ia_model_tag "$_k")"
+            _w="$(ia_model_size "$_k")"
+            _min="$(ia_model_min_ram "$_k")"
+            _rec="$(ia_model_rec_ram "$_k")"
+            MODEL_SPECS[$_k]="${_name}|${_tag}|${_w}|${_min}|${_rec}|${_desc}|${_base}"
+        done
+        unset _k _name _tag _w _min _rec _desc _base
+    fi
+fi
+
 resolve_model_key() {
     local input="$1"
     case "$input" in

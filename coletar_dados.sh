@@ -1,14 +1,20 @@
 #!/bin/bash
 # Coleta dados do setup IA em um único arquivo TXT para análise
+set -uo pipefail
 
 OUTPUT="auditoria-arquivos.txt"
 
 {
   echo "=== SCRIPTS DO PROJETO ==="
-  tail -n +1 ~/Projetos/AI/setup_ia.sh 2>/dev/null
-  tail -n +1 ~/Projetos/AI/shutdown_ia.sh 2>/dev/null
-  tail -n +1 ~/Projetos/AI/status_ia.sh 2>/dev/null
-  tail -n +1 ~/Projetos/AI/docker-compose.yml 2>/dev/null
+  cat ~/Projetos/AI/setup_ia.sh 2>/dev/null
+  cat ~/Projetos/AI/shutdown_ia.sh 2>/dev/null
+  cat ~/Projetos/AI/status_ia.sh 2>/dev/null
+  # docker-compose.yml não existe neste repo (infra via docker run em setup_ia.sh)
+  if [[ -f ~/Projetos/AI/docker-compose.yml ]]; then
+    cat ~/Projetos/AI/docker-compose.yml 2>/dev/null
+  else
+    echo "(docker-compose.yml ausente — esperado: infra via 'docker run' em setup_ia.sh)"
+  fi
 
   echo -e "\n=== CONFIG OLLAMA (container) ==="
   docker exec ollama-service cat /root/.ollama/config.json 2>/dev/null

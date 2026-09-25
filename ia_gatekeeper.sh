@@ -31,6 +31,12 @@ LOG_FILE="${BASE_DIR}/gatekeeper.log"
 API_URL="http://localhost:11434"
 CONTAINER="ollama-service"
 
+# Fonte unica de modelos (fallback: tabela local abaixo)
+if [[ -f "${BASE_DIR}/lib_ia.sh" ]]; then
+    # shellcheck source=lib_ia.sh
+    source "${BASE_DIR}/lib_ia.sh" 2>/dev/null || true
+fi
+
 # Exit codes semânticos
 EXIT_OK=0
 EXIT_RAM_INSUF=1
@@ -80,8 +86,18 @@ is_model_installed() {
 # =============================================================================
 get_ram_requirement() {
     local model="$1"
-    
-    # Busca exata
+
+    # Fonte unica: registro canonico via tag -> chave curta -> MIN_RAM
+    if declare -f ia_model_key_for_tag >/dev/null 2>&1; then
+        local key
+        key=$(ia_model_key_for_tag "$model" 2>/dev/null) || key=""
+        if [[ -n "$key" ]]; then
+            ia_model_min_ram "$key"
+            return 0
+        fi
+    fi
+
+    # Busca exata (fallback standalone)
     if [[ -v MODEL_RAM_REQUIREMENTS[$model] ]]; then
         echo "${MODEL_RAM_REQUIREMENTS[$model]}"
         return 0
