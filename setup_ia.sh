@@ -189,10 +189,10 @@ fi
 resolve_model_key() {
     local input="$1"
     case "$input" in
-        "mistral-nemo-otimizado"|"mistral-nemo-otimizado:latest"|"1") echo "mistral-otimizado" ;;
-        "mistral-nemo"|"mistral-nemo:latest"|"2") echo "mistral-base" ;;
-        "qwen2.5-coder:14b-instruct-q8_0"|"qwen-coder"|"3") echo "qwen-coder" ;;
-        "qwen-dev-pro"|"qwen-dev-pro:latest"|"4") echo "qwen-base" ;;
+        "mistral-otimizado"|"mistral-nemo-otimizado"|"mistral-nemo-otimizado:latest"|"1") echo "mistral-otimizado" ;;
+        "mistral-base"|"mistral-nemo"|"mistral-nemo:latest"|"2") echo "mistral-base" ;;
+        "qwen-coder"|"qwen2.5-coder:14b-instruct-q8_0"|"3") echo "qwen-coder" ;;
+        "qwen-base"|"qwen-dev-pro"|"qwen-dev-pro:latest"|"4") echo "qwen-base" ;;
         "none"|"5"|"") echo "none" ;;
         *) echo ""; return 1 ;;
     esac
