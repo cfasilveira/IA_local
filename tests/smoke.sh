@@ -73,5 +73,66 @@ grep -q 'source "${BASE_DIR}/lib_ia.sh"' setup_ia.sh && ok "setup consome lib_ia
 grep -q 'ia_model_min_ram' ia_gatekeeper.sh && ok "gatekeeper consome lib_ia" || bad "gatekeeper nao consome lib_ia"
 
 echo ""
+echo "== [6/6] validate_system + cleanup cirurgico (stubs, sem docker) =="
+# T1: stack nossa rodando + porta bound por docker-proxy (PID fantasma que
+# nunca aparece no `docker top`). O codigo antigo errava: "processo externo".
+# (o `err` interno faz exit: o rc e o exit code do subshell, nao echo interno)
+t1_out=$(bash -c '
+  eval "$(sed -n "/^validate_system()/,/^}/p" setup_ia.sh)"
+  log(){ :; }; warn(){ :; }; err(){ echo "ERR:$1" >&2; exit 1; }
+  BASE_DIR=/tmp; LOG=/tmp/smoke_fake.log
+  ss(){ echo "tcp LISTEN 0 4096 *:11434 *:* users:(\"docker-proxy\",pid=99999,fd=4)";
+        echo "tcp LISTEN 0 4096 *:8080 *:* users:(\"docker-proxy\",pid=99999,fd=4)"; return 0; }
+  sudo(){ "$@"; }
+  docker(){ case "$1 $2" in
+    "info"*) return 0;;
+    "ps --format"*) printf "ollama-service\nopen-webui-gui\n"; return 0;;
+    *) echo "PID TTY TIME CMD"; return 0;; esac; }
+  free(){ echo "Mem: 31 9 22 0 0 22"; }
+  validate_system >/dev/null 2>/tmp/smoke_t1err.txt; echo "rc=$?"
+' 2>/dev/null); t1_rc=$?
+[[ "$t1_rc" == "0" && "$t1_out" == "rc=0" ]] && ok "stack propria nao e 'processo externo'" || bad "stack propria rejeitada (exit=$t1_rc out=$t1_out err=$(cat /tmp/smoke_t1err.txt 2>/dev/null))"
+
+# T2: processo realmente externo, sem containers nossos -> deve barrar
+t2_out=$(bash -c '
+  eval "$(sed -n "/^validate_system()/,/^}/p" setup_ia.sh)"
+  log(){ :; }; warn(){ :; }; err(){ echo "ERR:$1"; exit 1; }
+  BASE_DIR=/tmp; LOG=/tmp/smoke_fake.log
+  ss(){ echo "tcp LISTEN 0 128 *:11434 *:* users:(\"algum-outro\",pid=1234,fd=3)"; return 0; }
+  sudo(){ "$@"; }
+  docker(){ case "$1 $2" in
+    "info"*) return 0;;
+    "ps --format"*) return 0;;
+    *) echo "PID TTY TIME CMD"; return 0;; esac; }
+  free(){ echo "Mem: 31 9 22 0 0 22"; }
+  validate_system 2>&1
+' 2>/dev/null); t2_rc=$?
+echo "$t2_out" | grep -q "processo externo" && ok "processo externo ainda barrado" || bad "processo externo nao barrado"
+[[ "$t2_rc" == "1" ]] && ok "validate falha com rc=1" || bad "rc inesperado: $t2_rc [$t2_out]"
+
+# T3: falha pre-criacao nao remove nada (stack saudavel preservada)
+rm -f /tmp/smoke_rm.log
+bash -c '
+  eval "$(sed -n "/^cleanup()/,/^}/p" setup_ia.sh)"
+  warn(){ :; }
+  docker(){ echo "$*" >> /tmp/smoke_rm.log; return 0; }
+  CREATED_CONTAINERS=()
+  false; cleanup >/dev/null 2>&1
+' 2>/dev/null
+[[ ! -s /tmp/smoke_rm.log ]] && ok "cleanup pre-criacao nao remove nada" || bad "cleanup removeu: $(cat /tmp/smoke_rm.log)"
+
+# T4: falha pos-criacao remove SOMENTE o que o run criou
+rm -f /tmp/smoke_rm.log
+bash -c '
+  eval "$(sed -n "/^cleanup()/,/^}/p" setup_ia.sh)"
+  warn(){ :; }
+  docker(){ echo "$*" >> /tmp/smoke_rm.log; return 0; }
+  CREATED_CONTAINERS=("ollama-service")
+  false; cleanup >/dev/null 2>&1
+' 2>/dev/null
+[[ "$(cat /tmp/smoke_rm.log 2>/dev/null)" == "rm -f ollama-service" ]] && ok "cleanup pos-criacao remove so o criado" || bad "cleanup inesperado: [$(cat /tmp/smoke_rm.log 2>/dev/null)]"
+rm -f /tmp/smoke_rm.log
+
+echo ""
 echo "Resultado: ${pass} pass, ${fail} fail"
 [[ "$fail" -eq 0 ]]

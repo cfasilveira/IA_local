@@ -28,13 +28,18 @@ err() {
 }
 
 # ============================================================================
-# FAIL GRACEFULLY (SRE Mode)
+# FAIL GRACEFULLY (SRE Mode) — cirúrgico: só remove o que ESTE run criou.
+# Falhas de pré-criação (porta, RAM, args, Docker off) não tocam em nada;
+# stack pré-existente saudável é preservada.
 # ============================================================================
+CREATED_CONTAINERS=()  # nomes criados por esta execução (create_containers)
 cleanup() {
     local exit_code=$?
-    if [[ $exit_code -ne 0 ]]; then
-        warn "🧹 Sinal de saída ou erro (${exit_code}). Executando Fail Gracefully..."
-        docker rm -f ollama-service open-webui-gui >/dev/null 2>&1 || true
+    if [[ $exit_code -ne 0 && ${#CREATED_CONTAINERS[@]} -gt 0 ]]; then
+        warn "🧹 Falha após criação (${exit_code}). Removendo só o que este run criou: ${CREATED_CONTAINERS[*]}..."
+        docker rm -f "${CREATED_CONTAINERS[@]}" >/dev/null 2>&1 || true
+    elif [[ $exit_code -ne 0 ]]; then
+        warn "🧹 Falha antes de criar containers (${exit_code}). Nada a limpar — stack existente preservada."
     fi
 }
 trap cleanup EXIT INT TERM
@@ -104,9 +109,28 @@ validate_system() {
     ram_total=$(free -g | awk '/^Mem:/{print $2}')
     [[ "$ram_total" -ge 28 ]] || err "RAM total insuficiente: ${ram_total}GB (Mínimo 28GB)"
 
-    # IDEMPOTÊNCIA: Não abortar se a porta está ocupada por container NOSSO
+    # IDEMPOTÊNCIA: containers nossos pelo NOME primeiro.
+    # (Com portas publicadas, quem escuta no host é o docker-proxy — o PID
+    #  do `ss` nunca aparece no `docker top`, então a heurística de PID
+    #  abaixo classifica nossa própria stack como "externa".)
+    # Se o dono esperado está rodando, a porta é nossa: só avisar, pois
+    # create_containers() recria de forma idempotente. Não remover aqui —
+    # se a validação falhar adiante (RAM etc.), a stack segue intacta.
+    local own_running=""
+    own_running=$(docker ps --format '{{.Names}}' 2>/dev/null || true)
+
     for port in 11434 8080; do
-        if ss -tlnp 2>/dev/null | grep -qE ":${port}\b"; then
+        if ! ss -tlnp 2>/dev/null | grep -qE ":${port}\b"; then
+            continue
+        fi
+        local expected=""
+        [[ "$port" == "11434" ]] && expected="ollama-service"
+        [[ "$port" == "8080" ]] && expected="open-webui-gui"
+        if [[ -n "$expected" ]] && echo "$own_running" | grep -q "^${expected}$"; then
+            warn "Porta ${port} ocupada pelo nosso '${expected}' (rodando). Será recriada em create_containers..."
+            continue
+        fi
+        {
             local pid_using
             pid_using=$(sudo ss -tlnp 2>/dev/null | grep -E ":${port}\b" | grep -oP 'pid=\K[0-9]+' | head -1)
 
@@ -126,7 +150,7 @@ validate_system() {
             else
                 err "Porta ${port} já está em uso por processo externo (PID=${pid_using:-?}). Libere-a antes de continuar."
             fi
-        fi
+        }
     done
 
     mkdir -p "${BASE_DIR}/ollama-models" "${BASE_DIR}/AI-data/open-webui"
@@ -295,6 +319,8 @@ create_containers() {
         -e ROCR_VISIBLE_DEVICES="" \
         ollama/ollama:latest
 
+    CREATED_CONTAINERS+=("ollama-service")
+
     for i in $(seq 1 20); do
         local status; status=$(docker inspect -f '{{.State.Status}}' ollama-service 2>/dev/null)
         [[ "$status" == "running" ]] && break
@@ -308,6 +334,8 @@ create_containers() {
         -p 8080:8080 --add-host=host.docker.internal:host-gateway \
         -v "${BASE_DIR}/AI-data/open-webui:/app/backend/data" \
         --memory="3g" --cpus="3" ghcr.io/open-webui/open-webui:main
+
+    CREATED_CONTAINERS+=("open-webui-gui")
 
     log "Aguardando API Ollama..."
     for i in $(seq 1 30); do
